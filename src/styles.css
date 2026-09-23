@@ -20,7 +20,7 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
   background:
     radial-gradient(ellipse at 15% 10%, #1d3a44 0%, transparent 45%),
     radial-gradient(ellipse at 90% 90%, #243018 0%, transparent 40%),
@@ -31,13 +31,22 @@ body {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: 0.6rem;
+  overflow: hidden;
 }
 
 #app {
-  width: min(960px, 100%);
+  width: min(1400px, 100%);
+  height: 90vh;
+  height: 90dvh;
+  max-height: 90vh;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .topbar {
@@ -45,8 +54,9 @@ body {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.45rem;
   padding: 0 0.1rem;
+  flex: 0 0 auto;
 }
 
 .brand {
@@ -66,13 +76,16 @@ body {
 
 .stage {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.5));
 }
 
 #game {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   border: 2px solid rgba(111, 214, 182, 0.28);
   background: #0a1216;
   touch-action: none;
@@ -263,7 +276,12 @@ body {
 
 @media (max-width: 640px) {
   body {
-    padding: 0.5rem;
+    padding: 0.35rem;
+  }
+
+  #app {
+    height: 90vh;
+    height: 90dvh;
   }
 
   .panel {

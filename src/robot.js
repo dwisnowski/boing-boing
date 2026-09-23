@@ -1,7 +1,7 @@
 import { closestOnTerrain, sampleTerrainY } from "./terrain.js";
 
-const GRAVITY = 1650;
-const AIR_DRAG = 0.06;
+const GRAVITY = 1180;
+const AIR_DRAG = 0.045;
 /** Nominal mass for the fake impact-energy launch equation. */
 const HEAD_MASS = 1;
 /** Converts absorbed impact energy into outbound launch speed. */
@@ -239,11 +239,11 @@ function landOnFeet(robot, hit, speed) {
   const impact = Math.max(speed, -vn);
   const legFactor = legCount(robot) === 1 ? 0.72 : 1;
 
-  // Clean feet-down landing → spring bounce down the mountain
+  // Clean feet-down landing → energetic spring bounce down the mountain
   if (align > 0.7 && impact > 90) {
-    const power = robot.stats.bounce * (0.8 + Math.min(impact / 850, 1.0)) * legFactor;
-    robot.vx += hit.nx * 90 * power + 300 * power;
-    robot.vy += hit.ny * -580 * power - 40;
+    const power = robot.stats.bounce * (0.95 + Math.min(impact / 720, 1.15)) * legFactor;
+    robot.vx += hit.nx * 120 * power + 380 * power;
+    robot.vy += hit.ny * -820 * power - 110;
     robot.spin = robot.stats.spinRate * 0.9;
     robot.bounceCount += 1;
     robot.airborne = true;

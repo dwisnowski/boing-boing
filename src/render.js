@@ -223,10 +223,13 @@ export function createCamera() {
 }
 
 export function updateCamera(camera, robot, canvas, terrain) {
-  const targetX = robot.x - canvas.width * 0.35;
-  const targetY = robot.y - canvas.height * 0.45;
-  camera.x += (targetX - camera.x) * 0.12;
-  camera.y += (targetY - camera.y) * 0.12;
-  camera.x = Math.max(-40, camera.x);
-  camera.y = Math.max(terrain.minY - 200, Math.min(camera.y, terrain.maxY - 120));
+  // Keep the robot centered in the viewport
+  const targetX = robot.x - canvas.width * 0.5;
+  const targetY = robot.y - canvas.height * 0.5;
+  camera.x += (targetX - camera.x) * 0.18;
+  camera.y += (targetY - camera.y) * 0.18;
+  // Soft bounds so the camera can still track airborne hangtime above the ridge
+  const pad = 320;
+  camera.x = Math.max(-pad, camera.x);
+  camera.y = Math.max(terrain.minY - canvas.height * 0.55, Math.min(camera.y, terrain.maxY - canvas.height * 0.2));
 }

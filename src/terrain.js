@@ -91,7 +91,8 @@ export function generateMountain({
     const step = 90 + rand() * 70;
     x = Math.min(length, x + step);
     const progress = x / length;
-    const baseline = startY + drop * (progress * progress * 0.55 + progress * 0.45);
+    // Steeper front-loaded descent so bounces have longer airtime before the next hit
+    const baseline = startY + drop * (progress * progress * 0.25 + progress * 0.75);
     const bump =
       Math.sin(progress * 14 + seed) * 28 * bumpiness +
       Math.sin(progress * 37) * 16 * bumpiness +
