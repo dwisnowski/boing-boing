@@ -70,7 +70,7 @@ export function statsFromUpgrades(upgrades) {
     limbLossThreshold: 110 + s * 28,
     spinRate: 3.4 + sp * 0.55,
     brakeStrength: 10 + sp * 1.2,
-    bounce: 1 + j * 0.18,
+    bounce: 1.28 + j * 0.22,
     explosionPower: 780 + e * 160,
   };
 }

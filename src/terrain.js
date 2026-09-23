@@ -91,7 +91,8 @@ export function generateMountain({
     const step = 90 + rand() * 70;
     x = Math.min(length, x + step);
     const progress = x / length;
-    const baseline = startY + drop * (progress * progress * 0.55 + progress * 0.45);
+    // Aggressive descent so each bounce clears more vertical before the next landing
+    const baseline = startY + drop * (progress * progress * 0.15 + progress * 0.85);
     const bump =
       Math.sin(progress * 14 + seed) * 28 * bumpiness +
       Math.sin(progress * 37) * 16 * bumpiness +

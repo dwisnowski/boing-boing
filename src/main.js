@@ -39,8 +39,23 @@ let activeLevelIndex = 0;
 let lastResult = null;
 
 refreshChips();
+resizeGameCanvas();
+window.addEventListener("resize", resizeGameCanvas);
 showScreen("title");
 drawIdlePreview();
+
+function resizeGameCanvas() {
+  const stage = canvas.parentElement;
+  if (!stage) return;
+  const rect = stage.getBoundingClientRect();
+  const w = Math.max(320, Math.floor(rect.width));
+  const h = Math.max(240, Math.floor(rect.height));
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+  if (mode === "menu") drawIdlePreview();
+}
 
 btnTournament.addEventListener("click", () => {
   activeLevelIndex = Math.min(save.tournamentIndex, LEVELS.length - 1);
