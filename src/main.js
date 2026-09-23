@@ -71,11 +71,15 @@ btnNext.addEventListener("click", () => {
 });
 
 btnRetry.addEventListener("click", () => {
-  if (!lastResult) return;
+  if (mode !== "results" || !lastResult) return;
   startRace(activeLevelIndex, lastResult.mode);
 });
 
-btnResultsMenu.addEventListener("click", () => showScreen("title"));
+btnResultsMenu.addEventListener("click", () => {
+  if (race) race.stop();
+  lastResult = null;
+  showScreen("title");
+});
 
 function startRace(levelIndex, raceMode) {
   if (race) race.stop();
