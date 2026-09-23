@@ -127,6 +127,7 @@ body {
 .panel {
   position: absolute;
   inset: 0;
+  z-index: 5;
   display: grid;
   place-content: center;
   gap: 0.85rem;
@@ -135,6 +136,7 @@ body {
     linear-gradient(180deg, rgba(8, 16, 20, 0.35), rgba(8, 16, 20, 0.82)),
     radial-gradient(circle at 50% 20%, rgba(111, 214, 182, 0.12), transparent 55%);
   text-align: center;
+  pointer-events: auto;
 }
 
 .panel[hidden] {

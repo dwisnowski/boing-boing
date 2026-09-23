@@ -136,12 +136,22 @@ export function updateRobot(robot, terrain, holding, dt) {
   // Safety: never tunnel completely through the mountain
   const groundY = sampleTerrainY(terrain, robot.x);
   if (robot.y > groundY + 28) {
+    if (robot.headFlight) {
+      // Head buried in the slope counts as a landing
+      robot.y = groundY - 10;
+      robot.vx = 0;
+      robot.vy = 0;
+      robot.spin = 0;
+      robot.headFlight = false;
+      killRobot(robot, "Head down — run over");
+      return;
+    }
     robot.y = groundY - 12;
     if (robot.vy > 0) robot.vy *= -0.3;
   }
 
   if (robot.y > terrain.maxY + 700) {
-    killRobot(robot, "Lost to the ravine");
+    killRobot(robot, robot.headFlight ? "Head lost to the ravine" : "Lost to the ravine");
   }
 }
 
@@ -304,7 +314,7 @@ function crashIntoTerrain(robot, hit, speed, holding) {
 function onBadLanding(robot, x, y, impact, hit = null, impactVel = null) {
   if (robot.headLaunched || !robot.alive) return;
 
-  // Soft bumps under the stamina threshold scrape but do not shed limbs
+    // Soft bumps under the stamina threshold scrape but do not shed limbs
   const threshold = robot.stats.limbLossThreshold ?? 70;
   if (impact < threshold && appendageCount(robot) > 0) {
     burstSparks(robot, x, y, "#e2552d", 5);
@@ -320,6 +330,8 @@ function onBadLanding(robot, x, y, impact, hit = null, impactVel = null) {
   robot.badLandings += 1;
   const lost = shedNextAppendage(robot);
   burstSparks(robot, x, y, "#e2552d", 10);
+  // Brief invulnerability so one tumble does not strip every limb at once
+  robot.damageCooldown = Math.max(robot.damageCooldown, 0.85);
   if (lost) {
     flash(robot, lost.message, 1.1);
     if (appendageCount(robot) === 0) {
