@@ -149,7 +149,10 @@ export function drawRobot(ctx, robot) {
   ctx.translate(robot.x, robot.y);
   ctx.rotate(robot.angle);
 
-  if (robot.headLaunched || (!robot.hasArms && !robot.hasLegs && robot.headMode)) {
+  const limbsGone =
+    !robot.leftArm && !robot.rightArm && !robot.leftLeg && !robot.rightLeg;
+
+  if (robot.headLaunched || (limbsGone && robot.headMode)) {
     // Tin head
     ctx.fillStyle = "#9eb4bd";
     ctx.fillRect(-11, -11, 22, 22);
@@ -176,19 +179,20 @@ export function drawRobot(ctx, robot) {
   ctx.fillRect(-7, -hh + 2, 5, 5);
   ctx.fillRect(2, -hh + 2, 5, 5);
 
-  if (robot.hasArms) {
-    ctx.fillStyle = "#b33d22";
-    ctx.fillRect(-hw - 12, -8, 12, 8);
-    ctx.fillRect(hw, -8, 12, 8);
-  }
+  ctx.fillStyle = "#b33d22";
+  if (robot.leftArm) ctx.fillRect(-hw - 12, -8, 12, 8);
+  if (robot.rightArm) ctx.fillRect(hw, -8, 12, 8);
 
-  if (robot.hasLegs) {
+  if (robot.leftLeg) {
     ctx.fillStyle = "#9eb4bd";
     ctx.fillRect(-hw * 0.7, hh * 0.35, 10, 18);
-    ctx.fillRect(hw * 0.7 - 10, hh * 0.35, 10, 18);
-    // Spring feet
     ctx.fillStyle = "#6fd6b6";
     ctx.fillRect(-hw * 0.85, hh - 4, 16, 7);
+  }
+  if (robot.rightLeg) {
+    ctx.fillStyle = "#9eb4bd";
+    ctx.fillRect(hw * 0.7 - 10, hh * 0.35, 10, 18);
+    ctx.fillStyle = "#6fd6b6";
     ctx.fillRect(hw * 0.85 - 16, hh - 4, 16, 7);
   }
 

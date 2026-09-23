@@ -1,5 +1,5 @@
 import { createLevel, LEVELS } from "./levels.js";
-import { createRobot, updateRobot } from "./robot.js";
+import { createRobot, updateRobot, integrityRatio } from "./robot.js";
 import { statsFromUpgrades } from "./upgrades.js";
 import { createCamera, updateCamera, drawFrame } from "./render.js";
 
@@ -24,7 +24,7 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
     onHud?.({
       levelName: levelDef.name,
       time: 0,
-      integrity: robot.integrity / robot.maxIntegrity,
+      integrity: integrityRatio(robot),
       hint: "Hold to stabilize spin · release to tumble",
     });
     raf = requestAnimationFrame(frame);
@@ -45,16 +45,24 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
     onHud?.({
       levelName: levelDef.name,
       time: elapsed,
-      integrity: Math.max(0, robot.integrity / robot.maxIntegrity),
-      hint: robot.headMode
-        ? "Tin head! Slam the torso to launch"
-        : holding
-          ? "Stabilizing… (momentum bleeding)"
-          : "Hold to stabilize spin · release to tumble",
+      integrity: integrityRatio(robot),
+      hint: raceHint(robot, holding),
     });
 
     checkEnd();
     raf = requestAnimationFrame(frame);
+  }
+
+  function raceHint(bot, holding) {
+    if (bot.headFlight) return "Tin head in flight — landing ends the run";
+    if (bot.headMode && !bot.headLaunched) {
+      return "No limbs left — hit the ground to launch the head";
+    }
+    if (!bot.leftLeg && !bot.rightLeg) {
+      return "Legs gone — torso scrapes will cost you";
+    }
+    if (holding) return "Stabilizing… (momentum bleeding)";
+    return "Land feet-down to BOING · bad landings shed limbs";
   }
 
   function collectChips(bot, chips) {
