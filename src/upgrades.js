@@ -67,7 +67,7 @@ export function statsFromUpgrades(upgrades) {
   const e = upgrades.explosion;
   return {
     // Soft scrapes below this impact do not shed appendages
-    limbLossThreshold: 70 + s * 22,
+    limbLossThreshold: 110 + s * 28,
     spinRate: 3.4 + sp * 0.55,
     brakeStrength: 10 + sp * 1.2,
     bounce: 1 + j * 0.18,
