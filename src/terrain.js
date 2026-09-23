@@ -6,11 +6,12 @@ export function buildTerrain(points) {
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
+    // Outward normal (toward sky). Points are authored left→right.
     segments.push({
       a,
       b,
-      nx: -dy / len,
-      ny: dx / len,
+      nx: dy / len,
+      ny: -dx / len,
       len,
     });
   }

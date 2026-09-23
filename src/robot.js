@@ -1,4 +1,4 @@
-import { closestOnTerrain } from "./terrain.js";
+import { closestOnTerrain, sampleTerrainY } from "./terrain.js";
 
 const GRAVITY = 1650;
 const AIR_DRAG = 0.06;
@@ -100,6 +100,13 @@ export function updateRobot(robot, terrain, holding, dt) {
   stepParticles(robot, dt);
   resolveTerrain(robot, terrain, holding);
 
+  // Safety: never tunnel completely through the mountain
+  const groundY = sampleTerrainY(terrain, robot.x);
+  if (robot.y > groundY + 28) {
+    robot.y = groundY - 12;
+    if (robot.vy > 0) robot.vy *= -0.3;
+  }
+
   if (robot.y > terrain.maxY + 700) {
     killRobot(robot, "Lost to the ravine");
   }
@@ -135,8 +142,9 @@ function resolveTerrain(robot, terrain, holding) {
   for (const foot of contacts.feet) {
     const hit = closestOnTerrain(terrain, foot.x, foot.y);
     if (!hit) continue;
+    // Negative "into" means the point is below the surface (into the mountain).
     const into = (foot.x - hit.x) * hit.nx + (foot.y - hit.y) * hit.ny;
-    if (into < 5) {
+    if (into < 8 && hit.dist < 40) {
       if (!bestFoot || into < bestFoot.into) {
         bestFoot = { ...hit, into, foot };
       }
@@ -149,7 +157,7 @@ function resolveTerrain(robot, terrain, holding) {
     const hit = closestOnTerrain(terrain, pt.x, pt.y);
     if (!hit) continue;
     const into = (pt.x - hit.x) * hit.nx + (pt.y - hit.y) * hit.ny;
-    if (into < 3) {
+    if (into < 6 && hit.dist < 36) {
       if (!bodyHit || into < bodyHit.into) bodyHit = { ...hit, into, pt };
     }
   }
@@ -160,7 +168,7 @@ function resolveTerrain(robot, terrain, holding) {
     landOnFeet(robot, bestFoot, speed);
   } else if (bodyHit) {
     // Separate out of terrain
-    const push = 4 - bodyHit.into;
+    const push = Math.max(0, 6 - bodyHit.into);
     robot.x += bodyHit.nx * push;
     robot.y += bodyHit.ny * push;
     crashIntoTerrain(robot, bodyHit, speed, holding);
@@ -174,9 +182,10 @@ function landOnFeet(robot, hit, speed) {
   const footDirY = Math.cos(robot.angle);
   const align = footDirX * hit.nx + footDirY * hit.ny;
 
-  const push = 6 - hit.into;
-  robot.x += hit.nx * push * 0.85;
-  robot.y += hit.ny * push * 0.85;
+  // Push center out so feet sit on the surface
+  const push = Math.max(0, 8 - hit.into);
+  robot.x += hit.nx * push;
+  robot.y += hit.ny * push;
 
   // Kill velocity into the surface before bounce response
   const vn = robot.vx * hit.nx + robot.vy * hit.ny;
@@ -202,8 +211,8 @@ function landOnFeet(robot, hit, speed) {
     robot.spin *= 0.35;
     robot.airborne = true;
     if (robot.damageCooldown <= 0) {
-      applyDamage(robot, 3 + impact * 0.008, hit.foot.x, hit.foot.y, "Rough landing");
-      robot.damageCooldown = 0.35;
+      applyDamage(robot, 2 + impact * 0.005, hit.foot.x, hit.foot.y, "Rough landing");
+      robot.damageCooldown = 0.4;
     }
   } else {
     crashIntoTerrain(robot, hit, speed, false);
@@ -216,7 +225,7 @@ function crashIntoTerrain(robot, hit, speed, holding) {
     return;
   }
 
-  const dmg = (10 + speed * 0.04) * (holding ? 0.8 : 1);
+  const dmg = (6 + speed * 0.028) * (holding ? 0.75 : 1);
   applyDamage(robot, dmg, hit.x || robot.x, hit.y || robot.y, "Crash!");
   robot.damageCooldown = 0.45;
 
