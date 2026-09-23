@@ -2,30 +2,73 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Boing Boing</title>
     <meta
       name="description"
-      content="Boing Boing — a 2D side-scrolling game."
+      content="Boing Boing — a physics downhill racer. Bounce your robot to the finish before it falls apart."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Sans:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <div id="app">
-      <header class="hud">
+      <header class="topbar">
         <p class="brand">Boing Boing</p>
-        <p id="status" class="status">Arrow keys / WASD to move · Space to jump</p>
+        <p id="chip-count" class="chips" aria-live="polite">0 chips</p>
       </header>
-      <canvas id="game" width="960" height="540" aria-label="Boing Boing game canvas"></canvas>
-      <div id="overlay" class="overlay" hidden>
-        <p class="overlay-brand">Boing Boing</p>
-        <p class="overlay-copy">Press Enter or click to start</p>
+
+      <div class="stage">
+        <canvas id="game" width="960" height="540" aria-label="Boing Boing game canvas"></canvas>
+
+        <div id="hud" class="hud" hidden>
+          <div class="hud-row">
+            <span id="hud-level">Mountain 1</span>
+            <span id="hud-time">0.00s</span>
+          </div>
+          <div class="meter" title="Chassis integrity">
+            <div id="integrity-fill" class="meter-fill"></div>
+          </div>
+          <p id="hud-hint" class="hud-hint">Hold to stabilize spin · release to tumble</p>
+        </div>
+
+        <div id="screen-title" class="panel">
+          <p class="panel-brand">Boing Boing</p>
+          <p class="panel-copy">
+            Launch your spring-footed robot down the mountain. Land flat to bounce.
+            Crash and limbs fly off. Reach the finish — or yeet the tin head.
+          </p>
+          <div class="panel-actions">
+            <button type="button" id="btn-tournament" class="btn primary">Tournament</button>
+            <button type="button" id="btn-quick" class="btn">Quick Race</button>
+            <button type="button" id="btn-shop" class="btn ghost">Upgrades</button>
+          </div>
+          <p class="panel-help">Hold Space / click / touch to brake spin in mid-air</p>
+        </div>
+
+        <div id="screen-shop" class="panel" hidden>
+          <p class="panel-brand shop-title">Upgrades</p>
+          <p id="shop-chips" class="panel-copy">Spend microchips to toughen your bot.</p>
+          <div id="shop-list" class="shop-list"></div>
+          <div class="panel-actions">
+            <button type="button" id="btn-shop-back" class="btn">Back</button>
+          </div>
+        </div>
+
+        <div id="screen-results" class="panel" hidden>
+          <p id="results-title" class="panel-brand">Finished!</p>
+          <p id="results-copy" class="panel-copy"></p>
+          <div class="panel-actions">
+            <button type="button" id="btn-next" class="btn primary">Next</button>
+            <button type="button" id="btn-retry" class="btn">Retry</button>
+            <button type="button" id="btn-results-menu" class="btn ghost">Menu</button>
+          </div>
+        </div>
       </div>
     </div>
     <script type="module" src="./src/main.js"></script>

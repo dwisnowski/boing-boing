@@ -1,187 +1,154 @@
-import { createPlayer, updatePlayer, drawPlayer } from "./player.js";
+import { createLevel, LEVELS } from "./levels.js";
+import { createRobot, updateRobot } from "./robot.js";
+import { statsFromUpgrades } from "./upgrades.js";
+import { createCamera, updateCamera, drawFrame } from "./render.js";
 
-const WORLD = {
-  width: 3200,
-  height: 540,
-  groundY: 460,
-};
-
-const PLATFORMS = [
-  { x: 0, y: WORLD.groundY, width: WORLD.width, height: 80 },
-  { x: 420, y: 360, width: 160, height: 24 },
-  { x: 720, y: 300, width: 140, height: 24 },
-  { x: 980, y: 250, width: 180, height: 24 },
-  { x: 1280, y: 320, width: 120, height: 24 },
-  { x: 1560, y: 280, width: 200, height: 24 },
-  { x: 1900, y: 340, width: 150, height: 24 },
-  { x: 2200, y: 260, width: 170, height: 24 },
-  { x: 2550, y: 310, width: 190, height: 24 },
-  { x: 2850, y: 230, width: 160, height: 24 },
-];
-
-const SPAWN = { x: 80, y: WORLD.groundY - 48 };
-
-export function createGame(canvas, input, ui) {
+export function createRace({ canvas, input, levelIndex, save, onHud, onFinish }) {
+  const levelDef = LEVELS[Math.min(levelIndex, LEVELS.length - 1)];
+  const level = createLevel(levelDef);
+  const stats = statsFromUpgrades(save.upgrades);
+  let robot = createRobot(level.spawn, stats);
+  const camera = createCamera();
   const ctx = canvas.getContext("2d");
-  const camera = { x: 0, y: 0 };
-  const stars = createStars(90);
 
-  let player = createPlayer(SPAWN);
   let running = false;
-  let lastTime = 0;
-  let rafId = 0;
+  let elapsed = 0;
+  let last = 0;
+  let raf = 0;
+  let chipsCollected = 0;
+  let resultSent = false;
 
   function start() {
-    if (running) return;
     running = true;
-    player = createPlayer(SPAWN);
-    ui.setPlaying(true);
-    lastTime = performance.now();
-    rafId = requestAnimationFrame(frame);
+    last = performance.now();
+    onHud?.({
+      levelName: levelDef.name,
+      time: 0,
+      integrity: robot.integrity / robot.maxIntegrity,
+      hint: "Hold to stabilize spin · release to tumble",
+    });
+    raf = requestAnimationFrame(frame);
   }
 
   function frame(now) {
-    const dt = Math.min((now - lastTime) / 1000, 1 / 20);
-    lastTime = now;
+    if (!running) return;
+    const dt = Math.min((now - last) / 1000, 1 / 25);
+    last = now;
+    elapsed += dt;
 
-    updatePlayer(player, input, PLATFORMS, dt);
-    clampPlayerToWorld(player);
-    camera.x = clamp(
-      player.x + player.width / 2 - canvas.width / 2,
-      0,
-      WORLD.width - canvas.width
-    );
+    const holding = input.holding;
+    updateRobot(robot, level.terrain, holding, dt);
+    collectChips(robot, level.chips);
+    updateCamera(camera, robot, canvas, level.terrain);
+    drawFrame(ctx, camera, level, robot, holding, elapsed);
 
-    draw(ctx, canvas, camera, stars, player);
-    ui.setStatus(`x ${Math.round(player.x)} · keep exploring →`);
+    onHud?.({
+      levelName: levelDef.name,
+      time: elapsed,
+      integrity: Math.max(0, robot.integrity / robot.maxIntegrity),
+      hint: robot.headMode
+        ? "Tin head! Slam the torso to launch"
+        : holding
+          ? "Stabilizing… (momentum bleeding)"
+          : "Hold to stabilize spin · release to tumble",
+    });
 
-    if (player.x + player.width >= WORLD.width - 40) {
-      ui.setStatus("You reached the end of the demo world!");
+    checkEnd();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function collectChips(bot, chips) {
+    for (const chip of chips) {
+      if (chip.taken) continue;
+      if (Math.hypot(bot.x - chip.x, bot.y - chip.y) < chip.r + 24) {
+        chip.taken = true;
+        chipsCollected += 1;
+        bot.message = "+1 microchip";
+        bot.messageTimer = 0.8;
+      }
+    }
+  }
+
+  function checkEnd() {
+    if (resultSent) return;
+
+    if (robot.x >= level.finishX && robot.alive) {
+      resultSent = true;
+      const bonus = computeBonus(robot, chipsCollected);
+      finish({
+        won: true,
+        time: elapsed,
+        chips: chipsCollected + bonus.chips,
+        detail: bonus.detail,
+      });
+      return;
     }
 
-    rafId = requestAnimationFrame(frame);
+    if (!robot.alive) {
+      resultSent = true;
+      finish({
+        won: false,
+        time: elapsed,
+        chips: chipsCollected,
+        detail: robot.message || "Robot destroyed",
+      });
+    }
   }
 
-  function destroy() {
-    cancelAnimationFrame(rafId);
+  function computeBonus(bot, baseChips) {
+    let extra = 0;
+    const bits = [];
+    if (bot.bounceCount >= 3) {
+      extra += 1;
+      bits.push("bounce bonus");
+    }
+    if (bot.flipAcc >= 8) {
+      extra += 1;
+      bits.push("spin bonus");
+    }
+    if (bot.maxHeight < level.spawn.y - 180) {
+      extra += 1;
+      bits.push("height bonus");
+    }
+    if (baseChips >= 3) {
+      bits.push("chip hunter");
+    }
+    return {
+      chips: extra,
+      detail: bits.length ? bits.join(" · ") : "Clean run",
+    };
   }
 
-  // Draw an idle title-scene frame immediately.
-  draw(ctx, canvas, camera, stars, player);
+  function finish(result) {
+    onFinish?.(result);
+  }
 
-  return { start, destroy, get running() { return running; } };
+  function stop() {
+    running = false;
+    cancelAnimationFrame(raf);
+  }
+
+  function retry() {
+    stop();
+    robot = createRobot(level.spawn, stats);
+    chipsCollected = 0;
+    resultSent = false;
+    elapsed = 0;
+    for (const chip of level.chips) chip.taken = false;
+    camera.x = 0;
+    camera.y = 0;
+    start();
+  }
+
+  // Kickoff kick visual: brief delay then start already moving from spawn
+  return {
+    start,
+    stop,
+    retry,
+    get levelDef() {
+      return levelDef;
+    },
+  };
 }
 
-function clampPlayerToWorld(player) {
-  player.x = clamp(player.x, 0, WORLD.width - player.width);
-  if (player.y > WORLD.height + 200) {
-    player.x = SPAWN.x;
-    player.y = SPAWN.y;
-    player.vx = 0;
-    player.vy = 0;
-  }
-}
-
-function createStars(count) {
-  const stars = [];
-  for (let i = 0; i < count; i += 1) {
-    stars.push({
-      x: Math.random() * WORLD.width,
-      y: Math.random() * (WORLD.groundY - 40),
-      size: Math.random() * 2 + 0.5,
-      twinkle: Math.random() * Math.PI * 2,
-    });
-  }
-  return stars;
-}
-
-function draw(ctx, canvas, camera, stars, player) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  sky.addColorStop(0, "#0a2430");
-  sky.addColorStop(0.55, "#143844");
-  sky.addColorStop(1, "#1f4d4a");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const t = performance.now() / 1000;
-  for (const star of stars) {
-    const sx = star.x - camera.x * 0.35;
-    if (sx < -4 || sx > canvas.width + 4) continue;
-    const alpha = 0.45 + 0.55 * Math.abs(Math.sin(t + star.twinkle));
-    ctx.fillStyle = `rgba(242, 230, 201, ${alpha})`;
-    ctx.fillRect(sx, star.y, star.size, star.size);
-  }
-
-  // Parallax hills
-  drawHill(ctx, camera.x * 0.2, 390, "#0f3a40", canvas.width);
-  drawHill(ctx, camera.x * 0.45, 420, "#125058", canvas.width);
-
-  ctx.save();
-  ctx.translate(-camera.x, -camera.y);
-
-  for (const platform of PLATFORMS) {
-    drawPlatform(ctx, platform);
-  }
-
-  drawPlayer(ctx, player);
-
-  // Finish marker
-  ctx.fillStyle = "#7fd6c2";
-  ctx.fillRect(WORLD.width - 36, WORLD.groundY - 120, 10, 120);
-  ctx.fillStyle = "#e36a2e";
-  ctx.beginPath();
-  ctx.moveTo(WORLD.width - 26, WORLD.groundY - 120);
-  ctx.lineTo(WORLD.width - 26 + 48, WORLD.groundY - 104);
-  ctx.lineTo(WORLD.width - 26, WORLD.groundY - 88);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
-
-  // Vignette
-  const vig = ctx.createRadialGradient(
-    canvas.width / 2,
-    canvas.height / 2,
-    canvas.height * 0.2,
-    canvas.width / 2,
-    canvas.height / 2,
-    canvas.height * 0.75
-  );
-  vig.addColorStop(0, "rgba(0,0,0,0)");
-  vig.addColorStop(1, "rgba(0,0,0,0.35)");
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawHill(ctx, scrollX, baseY, color, width) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(0, baseY + 80);
-  for (let x = 0; x <= width; x += 40) {
-    const wx = x + (scrollX % 240);
-    const y = baseY + Math.sin(wx * 0.01) * 28;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(width, 540);
-  ctx.lineTo(0, 540);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawPlatform(ctx, platform) {
-  const isGround = platform.y >= WORLD.groundY;
-  ctx.fillStyle = isGround ? "#2f6b4f" : "#3d7f5c";
-  ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-  ctx.fillStyle = isGround ? "#4f9a68" : "#62b07a";
-  ctx.fillRect(platform.x, platform.y, platform.width, 6);
-  if (isGround) {
-    ctx.fillStyle = "#1d4334";
-    ctx.fillRect(platform.x, platform.y + 18, platform.width, platform.height - 18);
-  }
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
+export { LEVELS };

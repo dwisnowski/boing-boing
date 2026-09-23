@@ -1,46 +1,60 @@
-const KEY_MAP = {
-  ArrowLeft: "left",
-  ArrowRight: "right",
-  ArrowUp: "jump",
-  KeyA: "left",
-  KeyD: "right",
-  KeyW: "jump",
-  Space: "jump",
-  Enter: "start",
-};
+export function createInput(canvas) {
+  const state = {
+    hold: false,
+    holdPressed: false,
+  };
 
-export function createInput() {
-  const down = new Set();
+  function setHold(value) {
+    if (value && !state.hold) state.holdPressed = true;
+    state.hold = value;
+  }
 
   function onKeyDown(event) {
-    const action = KEY_MAP[event.code];
-    if (!action) return;
-    event.preventDefault();
-    down.add(action);
+    if (event.code === "Space" || event.code === "ArrowDown" || event.code === "KeyS") {
+      event.preventDefault();
+      setHold(true);
+    }
   }
 
   function onKeyUp(event) {
-    const action = KEY_MAP[event.code];
-    if (!action) return;
-    event.preventDefault();
-    down.delete(action);
+    if (event.code === "Space" || event.code === "ArrowDown" || event.code === "KeyS") {
+      event.preventDefault();
+      setHold(false);
+    }
+  }
+
+  function onPointerDown(event) {
+    if (event.target === canvas || canvas.contains(event.target)) {
+      event.preventDefault();
+      setHold(true);
+    }
+  }
+
+  function onPointerUp() {
+    setHold(false);
   }
 
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
+  canvas.addEventListener("pointerdown", onPointerDown);
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("blur", onPointerUp);
 
   return {
-    isDown(action) {
-      return down.has(action);
+    get holding() {
+      return state.hold;
     },
-    consume(action) {
-      if (!down.has(action)) return false;
-      down.delete(action);
-      return true;
+    consumePress() {
+      const pressed = state.holdPressed;
+      state.holdPressed = false;
+      return pressed;
     },
     destroy() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("blur", onPointerUp);
     },
   };
 }
