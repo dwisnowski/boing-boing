@@ -1,4 +1,4 @@
-import { generateMountain } from "./terrain.js";
+import { generateMountain, sampleTerrainY } from "./terrain.js";
 
 export const LEVELS = [
   {
@@ -9,7 +9,7 @@ export const LEVELS = [
     length: 2800,
     drop: 620,
     bumpiness: 0.55,
-    chips: makeChipPlan(2800, 620, 11),
+    chipHeights: [90, 120, 80, 150],
   },
   {
     id: "jagged-pass",
@@ -19,7 +19,7 @@ export const LEVELS = [
     length: 3800,
     drop: 880,
     bumpiness: 1.15,
-    chips: makeChipPlan(3800, 880, 27),
+    chipHeights: [100, 160, 110, 180],
   },
   {
     id: "skyhook-trail",
@@ -29,7 +29,7 @@ export const LEVELS = [
     length: 4200,
     drop: 960,
     bumpiness: 1.05,
-    chips: makeChipPlan(4200, 960, 44, true),
+    chipHeights: [150, 200, 170, 230],
   },
   {
     id: "crumble-canyon",
@@ -39,7 +39,7 @@ export const LEVELS = [
     length: 4600,
     drop: 1100,
     bumpiness: 1.35,
-    chips: makeChipPlan(4600, 1100, 63),
+    chipHeights: [110, 150, 130, 190],
   },
   {
     id: "finale-spine",
@@ -49,7 +49,7 @@ export const LEVELS = [
     length: 5200,
     drop: 1250,
     bumpiness: 1.45,
-    chips: makeChipPlan(5200, 1250, 99, true),
+    chipHeights: [140, 210, 160, 240],
   },
 ];
 
@@ -62,10 +62,12 @@ export function createLevel(levelDef) {
     startY: 80,
   });
 
-  const chips = levelDef.chips.map((c) => ({
-    ...c,
-    taken: false,
-  }));
+  const chips = (levelDef.chipHeights || [100, 130, 100, 160]).map((height, i) => {
+    const t = 0.2 + (i / 4) * 0.65;
+    const x = levelDef.length * t;
+    const y = sampleTerrainY(terrain, x) - height;
+    return { id: `c${levelDef.seed}-${i}`, x, y, r: 16, taken: false };
+  });
 
   const finishX = terrain.endX - 180;
 
@@ -83,22 +85,4 @@ export function createLevel(levelDef) {
       spin: 2.4,
     },
   };
-}
-
-function makeChipPlan(length, drop, seed, high = false) {
-  const chips = [];
-  const count = 4;
-  for (let i = 0; i < count; i += 1) {
-    const t = 0.18 + (i / count) * 0.7;
-    const x = length * t;
-    const baseY = 80 + drop * (t * t * 0.55 + t * 0.45);
-    const float = high ? 140 + (i % 2) * 50 : 70 + (seed % 5) * 8 + (i % 2) * 35;
-    chips.push({
-      id: `c${seed}-${i}`,
-      x,
-      y: baseY - float,
-      r: 14,
-    });
-  }
-  return chips;
 }

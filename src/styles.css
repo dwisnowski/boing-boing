@@ -89,6 +89,10 @@ body {
   pointer-events: none;
 }
 
+.hud[hidden] {
+  display: none !important;
+}
+
 .hud-row {
   display: flex;
   justify-content: space-between;
