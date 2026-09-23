@@ -244,12 +244,13 @@ function landOnFeet(robot, hit, speed) {
 
   // Not planted correctly — lose an appendage (or launch head if stripped)
   if (align > 0.3) {
+    const impactVel = { vx: robot.vx, vy: robot.vy };
     robot.vx = robot.vx * 0.5 + hit.nx * 30 + 40;
     robot.vy = Math.min(0, robot.vy) - 50;
     robot.spin *= 0.35;
     robot.airborne = true;
     if (robot.damageCooldown <= 0) {
-      onBadLanding(robot, hit.foot.x, hit.foot.y, impact);
+      onBadLanding(robot, hit.foot.x, hit.foot.y, impact, hit, impactVel);
       robot.damageCooldown = 0.45;
     }
     return;
@@ -266,7 +267,21 @@ function crashIntoTerrain(robot, hit, speed, holding) {
 
   robot.damageCooldown = 0.45;
 
-  const vn = robot.vx * (hit.nx || 0) + robot.vy * (hit.ny || -1);
+  // Snapshot impact velocity before bounce response (needed for head launch angle)
+  const impactVx = robot.vx;
+  const impactVy = robot.vy;
+  const vn = impactVx * (hit.nx || 0) + impactVy * (hit.ny || -1);
+  const impact = Math.max(speed, vn < 0 ? -vn : speed * 0.5);
+
+  // Limbless torso: next solid hit rockets the head using pre-bounce impact state
+  if (appendageCount(robot) === 0 && !robot.headLaunched) {
+    onBadLanding(robot, hit.x || robot.x, hit.y || robot.y, impact, hit, {
+      vx: impactVx,
+      vy: impactVy,
+    });
+    return;
+  }
+
   if (vn < 0 && hit.nx != null) {
     robot.vx -= 1.15 * vn * hit.nx;
     robot.vy -= 1.15 * vn * hit.ny;
@@ -276,27 +291,29 @@ function crashIntoTerrain(robot, hit, speed, holding) {
   robot.spin = (Math.random() > 0.5 ? 1 : -1) * (2.2 + Math.random() * 2.5);
   robot.airborne = true;
 
-  const impact = Math.max(speed, vn < 0 ? -vn : speed * 0.5);
-  onBadLanding(robot, hit.x || robot.x, hit.y || robot.y, impact, hit);
+  onBadLanding(robot, hit.x || robot.x, hit.y || robot.y, impact, hit, {
+    vx: impactVx,
+    vy: impactVy,
+  });
 }
 
 /**
  * Bad landings strip appendages in order: arm, arm, leg, leg.
  * Once all are gone, the next ground hit rockets the head free.
  */
-function onBadLanding(robot, x, y, impact, hit = null) {
+function onBadLanding(robot, x, y, impact, hit = null, impactVel = null) {
   if (robot.headLaunched || !robot.alive) return;
 
   // Soft bumps under the stamina threshold scrape but do not shed limbs
   const threshold = robot.stats.limbLossThreshold ?? 70;
-  if (impact < threshold) {
+  if (impact < threshold && appendageCount(robot) > 0) {
     burstSparks(robot, x, y, "#e2552d", 5);
     flash(robot, "Scrape", 0.35);
     return;
   }
 
   if (appendageCount(robot) === 0) {
-    launchHead(robot, hit);
+    launchHead(robot, hit, impactVel);
     return;
   }
 
@@ -344,25 +361,20 @@ function shedNextAppendage(robot) {
  *   |v_launch| = √(2 E_launch / m)
  * Launch angle matches the impact velocity angle, opposite direction.
  */
-function launchHead(robot, hit) {
+function launchHead(robot, hit, impactVel = null) {
   const nx = hit?.nx ?? 0;
   const ny = hit?.ny ?? -1;
 
-  const speed = Math.hypot(robot.vx, robot.vy) || 1;
-  let ix = robot.vx;
-  let iy = robot.vy;
-
-  // Prefer the into-surface component when we have a contact normal
-  const vn = robot.vx * nx + robot.vy * ny;
-  if (vn < 0) {
-    ix = vn * nx;
-    iy = vn * ny;
-  }
-
-  const impactSpeed = Math.hypot(ix, iy) || speed;
-  const impactAngle = Math.atan2(iy, ix);
+  const ivx = impactVel?.vx ?? robot.vx;
+  const ivy = impactVel?.vy ?? robot.vy;
+  const speed = Math.hypot(ivx, ivy) || 1;
+  // Launch angle matches velocity angle at impact, opposite direction
+  const impactAngle = Math.atan2(ivy, ivx);
   const launchAngle = impactAngle + Math.PI;
 
+  // Fake negative impact energy from speed into the surface
+  const vn = ivx * nx + ivy * ny;
+  const impactSpeed = vn < 0 ? Math.max(-vn, speed * 0.55) : speed;
   const impactEnergy = 0.5 * HEAD_MASS * impactSpeed * impactSpeed;
   const negativeImpactEnergy = -impactEnergy;
   const launchEnergy =
@@ -383,7 +395,14 @@ function launchHead(robot, hit) {
   robot.width = 22;
   robot.height = 22;
   robot.airborne = true;
-  robot.damageCooldown = 0.35;
+  // Clear the contact and give a short fuse so launch isn't cancelled by the same hit
+  if (hit?.nx != null) {
+    robot.x += hit.nx * 18;
+    robot.y += hit.ny * 18;
+  }
+  robot.x += Math.cos(launchAngle) * 10;
+  robot.y += Math.sin(launchAngle) * 10;
+  robot.damageCooldown = 0.4;
 
   burstSparks(robot, robot.x, robot.y, "#f0c43a", 28);
   shedLimb(robot, "torso");
