@@ -16,7 +16,7 @@ Hosted as a static site on GitHub Pages.
 | Stabilize spin (brake rotation) | Hold **Space**, **S**, click, or touch |
 | Tumble freely | Release |
 
-Land **feet-down** on the slope to bounce and build speed. Holding stabilizes your angle but bleeds momentum. Crash landings rip off arms, then legs. With only a torso left, slam into the ground to trigger the desperation **tin-head** launch.
+Land **feet-down** on the slope to bounce and build speed. Holding stabilizes your angle but bleeds momentum. Crash landings rip off appendages one at a time — arm, arm, leg, leg. With only a torso left, slam into the ground to trigger the desperation **tin-head** launch (opposite the impact direction). When the head hits the ground, the run ends. Miss the finish and choose **Try Again** or **Quit**.
 
 ## Modes
 
@@ -31,7 +31,7 @@ index.html
 src/
   main.js       # menus, shop, race wiring
   game.js       # race loop, chips, finish rules
-  robot.js      # tumble / bounce / destruction physics
+  robot.js      # tumble / bounce / limb loss / tin-head physics
   terrain.js    # downhill polyline mountains
   levels.js     # tournament stages
   render.js     # canvas drawing

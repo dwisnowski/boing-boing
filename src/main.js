@@ -115,10 +115,20 @@ function handleFinish(result, raceMode) {
     ? `Time ${result.time.toFixed(2)}s · +${result.chips} chips · ${result.detail}`
     : `${result.detail} · salvaged ${result.chips} chip${result.chips === 1 ? "" : "s"} · ${result.time.toFixed(2)}s`;
 
-  btnNext.textContent =
-    raceMode === "tournament" && result.won && activeLevelIndex < LEVELS.length - 1
-      ? "Next mountain"
-      : "Upgrades";
+  if (result.won) {
+    btnNext.hidden = false;
+    btnNext.textContent =
+      raceMode === "tournament" && activeLevelIndex < LEVELS.length - 1
+        ? "Next mountain"
+        : "Upgrades";
+    btnRetry.textContent = "Retry";
+    btnResultsMenu.textContent = "Menu";
+  } else {
+    // Did not reach the finish — only try again or quit
+    btnNext.hidden = true;
+    btnRetry.textContent = "Try Again";
+    btnResultsMenu.textContent = "Quit";
+  }
 
   showScreen("results");
 }

@@ -4,7 +4,7 @@ export const UPGRADE_DEFS = [
   {
     id: "stamina",
     name: "Stamina / Armor",
-    blurb: "Absorbs more impact before limbs fly off.",
+    blurb: "Raises the impact needed before a bad landing sheds a limb.",
     max: 5,
     baseCost: 3,
   },
@@ -66,7 +66,8 @@ export function statsFromUpgrades(upgrades) {
   const j = upgrades.jump;
   const e = upgrades.explosion;
   return {
-    maxIntegrity: 100 + s * 28,
+    // Soft scrapes below this impact do not shed appendages
+    limbLossThreshold: 70 + s * 22,
     spinRate: 3.4 + sp * 0.55,
     brakeStrength: 10 + sp * 1.2,
     bounce: 1 + j * 0.18,

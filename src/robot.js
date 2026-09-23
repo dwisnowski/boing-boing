@@ -2,6 +2,10 @@ import { closestOnTerrain, sampleTerrainY } from "./terrain.js";
 
 const GRAVITY = 1650;
 const AIR_DRAG = 0.06;
+/** Nominal mass for the fake impact-energy launch equation. */
+const HEAD_MASS = 1;
+/** Converts absorbed impact energy into outbound launch speed. */
+const HEAD_ENERGY_SCALE = 2.35;
 
 export function createRobot(spawn, stats) {
   return {
@@ -13,12 +17,14 @@ export function createRobot(spawn, stats) {
     spin: spawn.spin ?? 2.2,
     width: 34,
     height: 48,
-    integrity: stats.maxIntegrity,
-    maxIntegrity: stats.maxIntegrity,
-    hasArms: true,
-    hasLegs: true,
+    // Discrete appendages lost in order: arm → arm → leg → leg
+    leftArm: true,
+    rightArm: true,
+    leftLeg: true,
+    rightLeg: true,
     headMode: false,
     headLaunched: false,
+    headFlight: false,
     alive: true,
     finished: false,
     airborne: true,
@@ -26,6 +32,7 @@ export function createRobot(spawn, stats) {
     flipAcc: 0,
     maxHeight: spawn.y,
     distance: 0,
+    badLandings: 0,
     sparks: [],
     debris: [],
     message: "",
@@ -33,6 +40,32 @@ export function createRobot(spawn, stats) {
     damageCooldown: 0,
     stats,
   };
+}
+
+export function armCount(robot) {
+  return (robot.leftArm ? 1 : 0) + (robot.rightArm ? 1 : 0);
+}
+
+export function legCount(robot) {
+  return (robot.leftLeg ? 1 : 0) + (robot.rightLeg ? 1 : 0);
+}
+
+export function appendageCount(robot) {
+  return armCount(robot) + legCount(robot);
+}
+
+export function hasLegs(robot) {
+  return legCount(robot) > 0;
+}
+
+export function hasArms(robot) {
+  return armCount(robot) > 0;
+}
+
+/** Integrity for HUD: full limbs → torso-only → flying head. */
+export function integrityRatio(robot) {
+  if (robot.headLaunched) return 0.08;
+  return Math.max(0.12, appendageCount(robot) / 4);
 }
 
 export function robotContacts(robot) {
@@ -48,18 +81,18 @@ export function robotContacts(robot) {
     };
   }
 
-  const feet = robot.hasLegs
-    ? [local(-hw * 0.55, hh), local(hw * 0.55, hh)]
-    : [];
+  const feet = [];
+  if (robot.leftLeg) feet.push(local(-hw * 0.55, hh));
+  if (robot.rightLeg) feet.push(local(hw * 0.55, hh));
+
   const body = [
     local(0, hh * 0.15),
     local(-hw * 0.65, 0),
     local(hw * 0.65, 0),
     local(0, -hh * 0.35),
   ];
-  if (robot.hasArms) {
-    body.push(local(-hw * 1.05, 0), local(hw * 1.05, 0));
-  }
+  if (robot.leftArm) body.push(local(-hw * 1.05, 0));
+  if (robot.rightArm) body.push(local(hw * 1.05, 0));
   const head = local(0, -hh * 0.9);
   return { feet, body, head };
 }
@@ -77,8 +110,8 @@ export function updateRobot(robot, terrain, holding, dt) {
     if (holding) {
       robot.spin *= Math.exp(-robot.stats.brakeStrength * dt);
       robot.vx *= Math.exp(-0.5 * dt);
-    } else if (!robot.headMode) {
-      const target = robot.stats.spinRate * (robot.hasLegs ? 1 : 1.2);
+    } else if (!robot.headMode && !robot.headLaunched) {
+      const target = robot.stats.spinRate * (hasLegs(robot) ? 1 : 1.2);
       if (robot.spin < target) {
         robot.spin += (target - robot.spin) * 2.2 * dt;
       }
@@ -131,7 +164,7 @@ function stepParticles(robot, dt) {
 }
 
 function resolveTerrain(robot, terrain, holding) {
-  if (robot.headLaunched) {
+  if (robot.headFlight) {
     resolveHeadFlight(robot, terrain);
     return;
   }
@@ -164,10 +197,9 @@ function resolveTerrain(robot, terrain, holding) {
 
   const speed = Math.hypot(robot.vx, robot.vy);
 
-  if (bestFoot && robot.hasLegs) {
+  if (bestFoot && hasLegs(robot)) {
     landOnFeet(robot, bestFoot, speed);
   } else if (bodyHit) {
-    // Separate out of terrain
     const push = Math.max(0, 6 - bodyHit.into);
     robot.x += bodyHit.nx * push;
     robot.y += bodyHit.ny * push;
@@ -195,28 +227,35 @@ function landOnFeet(robot, hit, speed) {
   }
 
   const impact = Math.max(speed, -vn);
+  const legFactor = legCount(robot) === 1 ? 0.72 : 1;
 
+  // Clean feet-down landing → spring bounce down the mountain
   if (align > 0.7 && impact > 90) {
-    const power = robot.stats.bounce * (0.8 + Math.min(impact / 850, 1.0));
+    const power = robot.stats.bounce * (0.8 + Math.min(impact / 850, 1.0)) * legFactor;
     robot.vx += hit.nx * 90 * power + 300 * power;
     robot.vy += hit.ny * -580 * power - 40;
     robot.spin = robot.stats.spinRate * 0.9;
     robot.bounceCount += 1;
     robot.airborne = true;
-    flash(robot, "BOING!", 0.65);
+    flash(robot, legCount(robot) === 1 ? "BOING…?" : "BOING!", 0.65);
     burstSparks(robot, hit.foot.x, hit.foot.y, "#6fd6b6", 12);
-  } else if (align > 0.3) {
+    return;
+  }
+
+  // Not planted correctly — lose an appendage (or launch head if stripped)
+  if (align > 0.3) {
     robot.vx = robot.vx * 0.5 + hit.nx * 30 + 40;
     robot.vy = Math.min(0, robot.vy) - 50;
     robot.spin *= 0.35;
     robot.airborne = true;
     if (robot.damageCooldown <= 0) {
-      applyDamage(robot, 2 + impact * 0.005, hit.foot.x, hit.foot.y, "Rough landing");
-      robot.damageCooldown = 0.4;
+      onBadLanding(robot, hit.foot.x, hit.foot.y, impact);
+      robot.damageCooldown = 0.45;
     }
-  } else {
-    crashIntoTerrain(robot, hit, speed, false);
+    return;
   }
+
+  crashIntoTerrain(robot, hit, speed, false);
 }
 
 function crashIntoTerrain(robot, hit, speed, holding) {
@@ -225,8 +264,6 @@ function crashIntoTerrain(robot, hit, speed, holding) {
     return;
   }
 
-  const dmg = (6 + speed * 0.028) * (holding ? 0.75 : 1);
-  applyDamage(robot, dmg, hit.x || robot.x, hit.y || robot.y, "Crash!");
   robot.damageCooldown = 0.45;
 
   const vn = robot.vx * (hit.nx || 0) + robot.vy * (hit.ny || -1);
@@ -234,75 +271,143 @@ function crashIntoTerrain(robot, hit, speed, holding) {
     robot.vx -= 1.15 * vn * hit.nx;
     robot.vy -= 1.15 * vn * hit.ny;
   }
-  robot.vx *= 0.65;
+  robot.vx *= 0.65 * (holding ? 0.9 : 1);
   robot.vy = Math.min(robot.vy, 80) - 70;
   robot.spin = (Math.random() > 0.5 ? 1 : -1) * (2.2 + Math.random() * 2.5);
   robot.airborne = true;
 
-  if (robot.headMode && !robot.headLaunched && speed > 260) {
-    const footDirX = Math.sin(robot.angle);
-    const footDirY = Math.cos(robot.angle);
-    const align = hit.nx != null ? footDirX * hit.nx + footDirY * hit.ny : 0;
-    // Slam roughly face/torso-first into slope
-    if (align < 0.2) launchHead(robot);
+  const impact = Math.max(speed, vn < 0 ? -vn : speed * 0.5);
+  onBadLanding(robot, hit.x || robot.x, hit.y || robot.y, impact, hit);
+}
+
+/**
+ * Bad landings strip appendages in order: arm, arm, leg, leg.
+ * Once all are gone, the next ground hit rockets the head free.
+ */
+function onBadLanding(robot, x, y, impact, hit = null) {
+  if (robot.headLaunched || !robot.alive) return;
+
+  // Soft bumps under the stamina threshold scrape but do not shed limbs
+  const threshold = robot.stats.limbLossThreshold ?? 70;
+  if (impact < threshold) {
+    burstSparks(robot, x, y, "#e2552d", 5);
+    flash(robot, "Scrape", 0.35);
+    return;
+  }
+
+  if (appendageCount(robot) === 0) {
+    launchHead(robot, hit);
+    return;
+  }
+
+  robot.badLandings += 1;
+  const lost = shedNextAppendage(robot);
+  burstSparks(robot, x, y, "#e2552d", 10);
+  if (lost) {
+    flash(robot, lost.message, 1.1);
+    if (appendageCount(robot) === 0) {
+      robot.headMode = true;
+      flash(robot, "No limbs left — next hit launches the head!", 1.6);
+    }
   }
 }
 
-function applyDamage(robot, amount, x, y, reason) {
-  if (robot.headLaunched) return;
-  robot.integrity -= amount;
-  burstSparks(robot, x, y, "#e2552d", 8);
-
-  if (robot.integrity <= robot.maxIntegrity * 0.55 && robot.hasArms) {
-    robot.hasArms = false;
-    shedLimb(robot, "arms");
-    flash(robot, "Arms gone!", 1.0);
+function shedNextAppendage(robot) {
+  if (robot.leftArm) {
+    robot.leftArm = false;
+    shedLimb(robot, "arm");
+    return { kind: "arm", message: "Left arm gone!" };
   }
-  if (robot.integrity <= robot.maxIntegrity * 0.22 && robot.hasLegs) {
-    robot.hasLegs = false;
+  if (robot.rightArm) {
+    robot.rightArm = false;
+    shedLimb(robot, "arm");
+    return { kind: "arm", message: "Right arm gone!" };
+  }
+  if (robot.leftLeg) {
+    robot.leftLeg = false;
+    shedLimb(robot, "leg");
+    return { kind: "leg", message: "Left leg gone!" };
+  }
+  if (robot.rightLeg) {
+    robot.rightLeg = false;
     robot.headMode = true;
-    shedLimb(robot, "legs");
-    flash(robot, "Tin head ready — slam to launch!", 1.5);
+    shedLimb(robot, "leg");
+    return { kind: "leg", message: "Right leg gone!" };
   }
-  if (robot.integrity <= 0 && !robot.headLaunched) {
-    if (robot.headMode) launchHead(robot);
-    else killRobot(robot, reason || "Totaled");
-  }
+  return null;
 }
 
-function launchHead(robot) {
+/**
+ * Fake negative impact energy:
+ *   E_impact = ½ m |v_into|²
+ *   E_launch = -(-E_impact) * explosionScale   (absorb impact, invert to launch)
+ *   |v_launch| = √(2 E_launch / m)
+ * Launch angle matches the impact velocity angle, opposite direction.
+ */
+function launchHead(robot, hit) {
+  const nx = hit?.nx ?? 0;
+  const ny = hit?.ny ?? -1;
+
+  const speed = Math.hypot(robot.vx, robot.vy) || 1;
+  let ix = robot.vx;
+  let iy = robot.vy;
+
+  // Prefer the into-surface component when we have a contact normal
+  const vn = robot.vx * nx + robot.vy * ny;
+  if (vn < 0) {
+    ix = vn * nx;
+    iy = vn * ny;
+  }
+
+  const impactSpeed = Math.hypot(ix, iy) || speed;
+  const impactAngle = Math.atan2(iy, ix);
+  const launchAngle = impactAngle + Math.PI;
+
+  const impactEnergy = 0.5 * HEAD_MASS * impactSpeed * impactSpeed;
+  const negativeImpactEnergy = -impactEnergy;
+  const launchEnergy =
+    -negativeImpactEnergy * HEAD_ENERGY_SCALE * (robot.stats.explosionPower / 780);
+  const launchSpeed = Math.sqrt(Math.max(0, (2 * launchEnergy) / HEAD_MASS));
+
   robot.headLaunched = true;
-  robot.hasArms = false;
-  robot.hasLegs = false;
-  const power = robot.stats.explosionPower;
-  robot.vx = Math.max(robot.vx, 80) + power * 0.5;
-  robot.vy = -power * 0.3;
-  robot.spin = 9;
+  robot.headFlight = true;
+  robot.headMode = true;
+  robot.leftArm = false;
+  robot.rightArm = false;
+  robot.leftLeg = false;
+  robot.rightLeg = false;
+  robot.vx = Math.cos(launchAngle) * launchSpeed;
+  robot.vy = Math.sin(launchAngle) * launchSpeed;
+  robot.spin = 9 + Math.sign(launchSpeed) * 2;
+  robot.angle = launchAngle;
   robot.width = 22;
   robot.height = 22;
-  robot.integrity = Math.max(robot.integrity, 20);
+  robot.airborne = true;
+  robot.damageCooldown = 0.35;
+
   burstSparks(robot, robot.x, robot.y, "#f0c43a", 28);
   shedLimb(robot, "torso");
-  flash(robot, "KABOOM — go tin head!", 1.3);
+  flash(robot, "KABOOM — head away!", 1.3);
 }
 
+/** Head follows gravity until it hits the ground; first landing ends the run. */
 function resolveHeadFlight(robot, terrain) {
+  // Brief fuse so launch contact does not instantly end the session
+  if (robot.damageCooldown > 0) return;
+
   const hit = closestOnTerrain(terrain, robot.x, robot.y);
-  if (!hit || hit.dist >= 12) return;
+  if (!hit || hit.dist >= 14) return;
 
   const into = (robot.x - hit.x) * hit.nx + (robot.y - hit.y) * hit.ny;
-  if (into >= 8) return;
+  if (into >= 10) return;
 
-  const vn = robot.vx * hit.nx + robot.vy * hit.ny;
-  if (vn < 0) {
-    robot.vx -= 1.35 * vn * hit.nx;
-    robot.vy -= 1.35 * vn * hit.ny;
-    robot.vx = robot.vx * 0.9 + 40;
-  }
   robot.x = hit.x + hit.nx * 12;
   robot.y = hit.y + hit.ny * 12;
-  robot.integrity -= 1.5;
-  if (robot.integrity <= -50) killRobot(robot, "Head smashed");
+  robot.vx = 0;
+  robot.vy = 0;
+  robot.spin = 0;
+  robot.headFlight = false;
+  killRobot(robot, "Head down — run over");
 }
 
 function killRobot(robot, reason) {
