@@ -249,7 +249,10 @@ function landOnFeet(robot, hit, speed) {
   // Clean feet-down landing → spring rebound along the surface normal
   if (plant > 0.55 && impact > 40) {
     springBounce(robot, hit, vn, legFactor);
-    robot.spin = robot.stats.spinRate * 0.9;
+    robot.spin =
+      robot.bounceCount === 0
+        ? robot.stats.spinRate * 0.35
+        : robot.stats.spinRate * 0.9;
     robot.bounceCount += 1;
     robot.airborne = true;
     flash(robot, legCount(robot) === 1 ? "BOING…?" : "BOING!", 0.65);
@@ -280,36 +283,40 @@ function landOnFeet(robot, hit, speed) {
 
 /**
  * Reflect velocity along the surface normal.
- * First bounce aims for ~75% of the spawn drop height; later bounces use
- * spring-leg restitution (~75% efficient, scaled by Jump Springs + leg count).
+ * First bounce aims for ~75% of spawn drop height (e ≈ √0.75, with a vertical
+ * assist so steep opening slopes still hop up). Later bounces use spring-leg
+ * restitution at ~75% efficiency (scaled by Jump Springs + leg count).
  */
 function springBounce(robot, hit, vn, legFactor) {
   const vtx = robot.vx - vn * hit.nx;
   const vty = robot.vy - vn * hit.ny;
   const intoSpeed = vn < 0 ? -vn : 0;
 
-  let rebound;
   if (robot.bounceCount === 0) {
-    // Use the authored spawn drop — not how far downhill we drifted before contact.
     const targetHeight = FIRST_BOUNCE_HEIGHT_RATIO * robot.spawnDropHeight;
     const neededUp = Math.sqrt(2 * GRAVITY * targetHeight) * legFactor;
-    // Choose outward normal speed so world-up velocity reaches the target apex,
-    // even when leftover downhill tangential speed pulls vy positive on a slope.
-    if (hit.ny < -0.25) {
-      rebound = (-neededUp - vty) / hit.ny;
-    } else {
-      rebound = neededUp / Math.max(0.55, -hit.ny);
+    const rebound =
+      intoSpeed * Math.sqrt(FIRST_BOUNCE_HEIGHT_RATIO) * legFactor;
+    robot.vx = vtx + hit.nx * rebound + 30;
+    robot.vy = vty + hit.ny * rebound;
+    // Guarantee the visible ~75% apex even on downhill-tilted normals.
+    if (robot.vy > -neededUp) robot.vy = -neededUp;
+    // Keep the opening hop from rocketing the whole mountain in one launch.
+    robot.vx = Math.min(robot.vx, 460);
+    const vnOut = robot.vx * hit.nx + robot.vy * hit.ny;
+    if (vnOut < 55) {
+      const fix = 55 - vnOut;
+      robot.vx += hit.nx * fix;
+      robot.vy += hit.ny * fix;
     }
-    rebound = Math.max(rebound, intoSpeed * SPRING_EFFICIENCY * legFactor);
-  } else {
-    const efficiency =
-      SPRING_EFFICIENCY *
-      legFactor *
-      (robot.stats.bounce / BASE_BOUNCE_STAT);
-    rebound = intoSpeed * efficiency;
+    return;
   }
 
-  // Keep downhill tangential speed and add a light forward carry so hops progress.
+  const efficiency =
+    SPRING_EFFICIENCY *
+    legFactor *
+    (robot.stats.bounce / BASE_BOUNCE_STAT);
+  const rebound = intoSpeed * efficiency;
   robot.vx = vtx + hit.nx * rebound + 55;
   robot.vy = vty + hit.ny * rebound;
 }
