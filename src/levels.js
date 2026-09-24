@@ -70,6 +70,10 @@ export function createLevel(levelDef) {
   });
 
   const finishX = terrain.endX - 180;
+  const groundY = terrain.points[0].y;
+  // High enough that a 75% first rebound is clearly visible. Near-upright and
+  // low spin so the opening drop plants before tumble spin kicks in.
+  const dropHeight = 360;
 
   return {
     def: levelDef,
@@ -78,11 +82,13 @@ export function createLevel(levelDef) {
     finishX,
     spawn: {
       x: 60,
-      y: terrain.points[0].y - 90,
-      vx: 180,
-      vy: 30,
-      angle: -0.55,
-      spin: 2.2,
+      y: groundY - dropHeight,
+      groundY,
+      dropHeight,
+      vx: 70,
+      vy: 0,
+      angle: -0.12,
+      spin: 0,
     },
   };
 }

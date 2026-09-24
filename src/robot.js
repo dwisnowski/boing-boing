@@ -2,12 +2,20 @@ import { closestOnTerrain, sampleTerrainY } from "./terrain.js";
 
 const GRAVITY = 1180;
 const AIR_DRAG = 0.045;
+/** Spring-leg coefficient of restitution (outbound / inbound normal speed). */
+const SPRING_EFFICIENCY = 0.75;
+/** First drop targets this fraction of the measured spawn drop height. */
+const FIRST_BOUNCE_HEIGHT_RATIO = 0.75;
+/** Baseline Jump Springs stat used to normalize upgrade bonus on restitution. */
+const BASE_BOUNCE_STAT = 1.28;
 /** Nominal mass for the fake impact-energy launch equation. */
 const HEAD_MASS = 1;
 /** Converts absorbed impact energy into outbound launch speed. */
 const HEAD_ENERGY_SCALE = 2.35;
 
 export function createRobot(spawn, stats) {
+  const groundY = spawn.groundY ?? spawn.y + (spawn.dropHeight ?? 320);
+  const dropHeight = Math.max(80, groundY - spawn.y);
   return {
     x: spawn.x,
     y: spawn.y,
@@ -31,6 +39,8 @@ export function createRobot(spawn, stats) {
     bounceCount: 0,
     flipAcc: 0,
     maxHeight: spawn.y,
+    spawnY: spawn.y,
+    spawnDropHeight: dropHeight,
     distance: 0,
     badLandings: 0,
     sparks: [],
@@ -110,7 +120,8 @@ export function updateRobot(robot, terrain, holding, dt) {
     if (holding) {
       robot.spin *= Math.exp(-robot.stats.brakeStrength * dt);
       robot.vx *= Math.exp(-0.5 * dt);
-    } else if (!robot.headMode && !robot.headLaunched) {
+    } else if (!robot.headMode && !robot.headLaunched && robot.bounceCount > 0) {
+      // Hold tumble spin until after the opening drop so the first plant can bounce.
       const target = robot.stats.spinRate * (hasLegs(robot) ? 1 : 1.2);
       if (robot.spin < target) {
         robot.spin += (target - robot.spin) * 2.2 * dt;
@@ -220,30 +231,24 @@ function resolveTerrain(robot, terrain, holding) {
 }
 
 function landOnFeet(robot, hit, speed) {
+  // Feet point along +local Y. Outward terrain normals face the sky, so a planted
+  // landing has footDir anti-aligned with the normal (plant ≈ 1 when upright on flat).
   const footDirX = Math.sin(robot.angle);
   const footDirY = Math.cos(robot.angle);
-  const align = footDirX * hit.nx + footDirY * hit.ny;
+  const plant = -(footDirX * hit.nx + footDirY * hit.ny);
 
   // Push center out so feet sit on the surface
   const push = Math.max(0, 8 - hit.into);
   robot.x += hit.nx * push;
   robot.y += hit.ny * push;
 
-  // Kill velocity into the surface before bounce response
   const vn = robot.vx * hit.nx + robot.vy * hit.ny;
-  if (vn < 0) {
-    robot.vx -= vn * hit.nx;
-    robot.vy -= vn * hit.ny;
-  }
-
-  const impact = Math.max(speed, -vn);
+  const impact = Math.max(speed, vn < 0 ? -vn : 0);
   const legFactor = legCount(robot) === 1 ? 0.72 : 1;
 
-  // Clean feet-down landing → energetic spring bounce down the mountain
-  if (align > 0.7 && impact > 90) {
-    const power = robot.stats.bounce * (0.95 + Math.min(impact / 720, 1.15)) * legFactor;
-    robot.vx += hit.nx * 120 * power + 380 * power;
-    robot.vy += hit.ny * -820 * power - 110;
+  // Clean feet-down landing → spring rebound along the surface normal
+  if (plant > 0.55 && impact > 40) {
+    springBounce(robot, hit, vn, legFactor);
     robot.spin = robot.stats.spinRate * 0.9;
     robot.bounceCount += 1;
     robot.airborne = true;
@@ -253,8 +258,12 @@ function landOnFeet(robot, hit, speed) {
   }
 
   // Not planted correctly — lose an appendage (or launch head if stripped)
-  if (align > 0.3) {
+  if (plant > 0.2) {
     const impactVel = { vx: robot.vx, vy: robot.vy };
+    if (vn < 0) {
+      robot.vx -= vn * hit.nx;
+      robot.vy -= vn * hit.ny;
+    }
     robot.vx = robot.vx * 0.5 + hit.nx * 30 + 40;
     robot.vy = Math.min(0, robot.vy) - 50;
     robot.spin *= 0.35;
@@ -267,6 +276,42 @@ function landOnFeet(robot, hit, speed) {
   }
 
   crashIntoTerrain(robot, hit, speed, false);
+}
+
+/**
+ * Reflect velocity along the surface normal.
+ * First bounce aims for ~75% of the spawn drop height; later bounces use
+ * spring-leg restitution (~75% efficient, scaled by Jump Springs + leg count).
+ */
+function springBounce(robot, hit, vn, legFactor) {
+  const vtx = robot.vx - vn * hit.nx;
+  const vty = robot.vy - vn * hit.ny;
+  const intoSpeed = vn < 0 ? -vn : 0;
+
+  let rebound;
+  if (robot.bounceCount === 0) {
+    // Use the authored spawn drop — not how far downhill we drifted before contact.
+    const targetHeight = FIRST_BOUNCE_HEIGHT_RATIO * robot.spawnDropHeight;
+    const neededUp = Math.sqrt(2 * GRAVITY * targetHeight) * legFactor;
+    // Choose outward normal speed so world-up velocity reaches the target apex,
+    // even when leftover downhill tangential speed pulls vy positive on a slope.
+    if (hit.ny < -0.25) {
+      rebound = (-neededUp - vty) / hit.ny;
+    } else {
+      rebound = neededUp / Math.max(0.55, -hit.ny);
+    }
+    rebound = Math.max(rebound, intoSpeed * SPRING_EFFICIENCY * legFactor);
+  } else {
+    const efficiency =
+      SPRING_EFFICIENCY *
+      legFactor *
+      (robot.stats.bounce / BASE_BOUNCE_STAT);
+    rebound = intoSpeed * efficiency;
+  }
+
+  // Keep downhill tangential speed and add a light forward carry so hops progress.
+  robot.vx = vtx + hit.nx * rebound + 55;
+  robot.vy = vty + hit.ny * rebound;
 }
 
 function crashIntoTerrain(robot, hit, speed, holding) {
