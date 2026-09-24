@@ -13,10 +13,12 @@ Hosted as a static site on GitHub Pages.
 
 | Action | Input |
 | --- | --- |
-| Stabilize spin (brake rotation) | Hold **Space**, **S**, click, or touch |
+| Brace / stabilize spin | Hold **Space**, **S**, click, or touch |
+| Correct spin backward | Hold **A** or **←** |
+| Timed bounce pump | Tap **W**, **↑**, **E**, or **D** just before landing (right-click also works) |
 | Tumble freely | Release |
 
-Land **feet-down** on the slope to bounce and build speed. Holding stabilizes your angle but bleeds momentum. Crash landings rip off appendages one at a time — arm, arm, leg, leg. With only a torso left, slam into the ground to trigger the desperation **tin-head** launch (opposite the impact direction). When the head hits the ground, the run ends. Miss the finish and choose **Try Again** or **Quit**.
+Land **feet-down** on the slope to bounce and build speed. Holding stabilizes your angle but bleeds momentum. Tap the pump right before impact for a **BOOST BOING**. Crash landings rip off appendages one at a time — arm, arm, leg, leg. With only a torso left, slam into the ground to trigger the desperation **tin-head** launch (opposite the impact direction). When the head hits the ground, the run ends. Miss the finish and choose **Try Again** or **Quit**.
 
 ## Modes
 

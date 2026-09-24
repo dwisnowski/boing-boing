@@ -1,4 +1,6 @@
-export function drawFrame(ctx, camera, level, robot, holding, elapsed) {
+export function drawFrame(ctx, camera, level, robot, controls, elapsed) {
+  const holding = typeof controls === "boolean" ? controls : !!controls?.holding;
+  const correcting = typeof controls === "object" && !!controls?.correcting;
   const { width, height } = ctx.canvas;
   ctx.clearRect(0, 0, width, height);
 
@@ -21,6 +23,25 @@ export function drawFrame(ctx, camera, level, robot, holding, elapsed) {
     ctx.strokeStyle = "rgba(111, 214, 182, 0.65)";
     ctx.lineWidth = 3;
     ctx.strokeRect(10, 10, width - 20, height - 20);
+  } else if (correcting) {
+    ctx.fillStyle = "rgba(96, 165, 250, 0.1)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = "rgba(96, 165, 250, 0.7)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(10, 10, width - 20, height - 20);
+  }
+
+  if (robot.boostPending && robot.boostArmed > 0) {
+    const pulse = 0.35 + 0.65 * (robot.boostArmed / 0.16);
+    ctx.save();
+    ctx.strokeStyle = `rgba(240, 196, 58, ${0.35 + pulse * 0.5})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(18, 18, width - 36, height - 36);
+    ctx.font = "700 16px 'IBM Plex Sans', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = `rgba(240, 196, 58, ${pulse})`;
+    ctx.fillText("BOOST ARMED", width / 2, height - 28);
+    ctx.restore();
   }
 
   if (robot.message && robot.messageTimer > 0) {
