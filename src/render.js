@@ -32,7 +32,7 @@ export function drawFrame(ctx, camera, level, robot, controls, elapsed) {
   }
 
   if (robot.boostPending && robot.boostArmed > 0) {
-    const pulse = 0.35 + 0.65 * (robot.boostArmed / 0.16);
+    const pulse = 0.35 + 0.65 * Math.min(1, robot.boostArmed / 0.22);
     ctx.save();
     ctx.strokeStyle = `rgba(240, 196, 58, ${0.35 + pulse * 0.5})`;
     ctx.lineWidth = 4;

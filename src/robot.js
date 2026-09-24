@@ -13,7 +13,7 @@ const HEAD_MASS = 1;
 /** Converts absorbed impact energy into outbound launch speed. */
 const HEAD_ENERGY_SCALE = 2.35;
 /** How long a boost pump stays armed before landing (seconds). */
-const BOOST_ARM_WINDOW = 0.16;
+const BOOST_ARM_WINDOW = 0.22;
 /** Extra bounce multiplier when the pump is timed into the landing. */
 const BOOST_BOUNCE_MULT = 1.38;
 /** Air torque used to unwind forward tumble (rad/s²). */
