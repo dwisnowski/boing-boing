@@ -1,55 +1,56 @@
 import { generateMountain, sampleTerrainY } from "./terrain.js";
 
+/** Long downhill stages (~5.5× the original lengths) with matching drop. */
 export const LEVELS = [
   {
     id: "warm-up-ridge",
     name: "Warm-Up Ridge",
     blurb: "Learn to stick the landing.",
     seed: 11,
-    length: 2200,
-    drop: 1480,
+    length: 12100,
+    drop: 8140,
     bumpiness: 0.45,
-    chipHeights: [140, 190, 130, 240],
+    chipHeights: [140, 190, 130, 240, 160, 210, 150, 260, 180, 220],
   },
   {
     id: "jagged-pass",
     name: "Jagged Pass",
     blurb: "Bumpy spines — bounce or bust.",
     seed: 27,
-    length: 2900,
-    drop: 2050,
+    length: 15950,
+    drop: 11275,
     bumpiness: 1.05,
-    chipHeights: [160, 230, 170, 280],
+    chipHeights: [160, 230, 170, 280, 190, 250, 200, 300, 180, 270, 220],
   },
   {
     id: "skyhook-trail",
     name: "Skyhook Trail",
     blurb: "Hangtime heaven for microchip hunters.",
     seed: 44,
-    length: 3300,
-    drop: 2400,
+    length: 18150,
+    drop: 13200,
     bumpiness: 0.95,
-    chipHeights: [200, 300, 230, 340],
+    chipHeights: [200, 300, 230, 340, 210, 280, 250, 360, 220, 310, 240, 330],
   },
   {
     id: "crumble-canyon",
     name: "Crumble Canyon",
     blurb: "Brutal drops. Pack armor.",
     seed: 63,
-    length: 3600,
-    drop: 2750,
+    length: 19800,
+    drop: 15125,
     bumpiness: 1.25,
-    chipHeights: [170, 240, 190, 300],
+    chipHeights: [170, 240, 190, 300, 200, 260, 210, 320, 180, 280, 230, 340],
   },
   {
     id: "finale-spine",
     name: "Finale Spine",
     blurb: "The mountain's last laugh.",
     seed: 99,
-    length: 4000,
-    drop: 3200,
+    length: 22000,
+    drop: 17600,
     bumpiness: 1.35,
-    chipHeights: [200, 320, 240, 360],
+    chipHeights: [200, 320, 240, 360, 220, 300, 260, 380, 210, 340, 250, 370],
   },
 ];
 
@@ -62,8 +63,9 @@ export function createLevel(levelDef) {
     startY: 80,
   });
 
-  const chips = (levelDef.chipHeights || [100, 130, 100, 160]).map((height, i) => {
-    const t = 0.2 + (i / 4) * 0.65;
+  const heights = levelDef.chipHeights || [100, 130, 100, 160];
+  const chips = heights.map((height, i) => {
+    const t = 0.06 + (i / Math.max(1, heights.length - 1)) * 0.88;
     const x = levelDef.length * t;
     const y = sampleTerrainY(terrain, x) - height;
     return { id: `c${levelDef.seed}-${i}`, x, y, r: 16, taken: false };

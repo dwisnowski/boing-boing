@@ -12,6 +12,12 @@ const BASE_BOUNCE_STAT = 1.28;
 const HEAD_MASS = 1;
 /** Converts absorbed impact energy into outbound launch speed. */
 const HEAD_ENERGY_SCALE = 2.35;
+/** How long a boost pump stays armed before landing (seconds). */
+const BOOST_ARM_WINDOW = 0.22;
+/** Extra bounce multiplier when the pump is timed into the landing. */
+const BOOST_BOUNCE_MULT = 1.38;
+/** Air torque used to unwind forward tumble (rad/s²). */
+const CORRECT_TORQUE = 14;
 
 export function createRobot(spawn, stats) {
   const groundY = spawn.groundY ?? spawn.y + (spawn.dropHeight ?? 320);
@@ -43,6 +49,10 @@ export function createRobot(spawn, stats) {
     spawnDropHeight: dropHeight,
     distance: 0,
     badLandings: 0,
+    boostArmed: 0,
+    boostPending: false,
+    perfectBoosts: 0,
+    correcting: false,
     sparks: [],
     debris: [],
     message: "",
@@ -107,17 +117,46 @@ export function robotContacts(robot) {
   return { feet, body, head };
 }
 
-export function updateRobot(robot, terrain, holding, dt) {
+/**
+ * @param {object} controls
+ * @param {boolean} controls.holding stabilize / brake spin
+ * @param {boolean} controls.correcting unwind tumble backward in air
+ * @param {boolean} controls.boostPressed edge-trigger for timed bounce pump
+ */
+export function updateRobot(robot, terrain, controls, dt) {
   if (!robot.alive || robot.finished) return;
+
+  const holding = !!controls?.holding;
+  const correcting = !!controls?.correcting;
+  const boostPressed = !!controls?.boostPressed;
 
   if (robot.messageTimer > 0) {
     robot.messageTimer -= dt;
     if (robot.messageTimer <= 0) robot.message = "";
   }
   if (robot.damageCooldown > 0) robot.damageCooldown -= dt;
+  if (robot.boostArmed > 0) {
+    robot.boostArmed -= dt;
+    if (robot.boostArmed <= 0) {
+      robot.boostArmed = 0;
+      robot.boostPending = false;
+    }
+  }
+
+  robot.correcting = false;
 
   if (robot.airborne) {
-    if (holding) {
+    if (boostPressed && !robot.headLaunched) {
+      robot.boostArmed = BOOST_ARM_WINDOW;
+      robot.boostPending = true;
+    }
+
+    if (correcting && !robot.headMode && !robot.headLaunched) {
+      // Push spin backward against the natural downhill tumble to re-square feet.
+      const arms = hasArms(robot) ? 1 : 0.55;
+      robot.spin -= CORRECT_TORQUE * arms * dt;
+      robot.correcting = true;
+    } else if (holding) {
       robot.spin *= Math.exp(-robot.stats.brakeStrength * dt);
       robot.vx *= Math.exp(-0.5 * dt);
     } else if (!robot.headMode && !robot.headLaunched && robot.bounceCount > 0) {
@@ -248,21 +287,30 @@ function landOnFeet(robot, hit, speed) {
 
   // Clean feet-down landing → spring rebound along the surface normal
   if (plant > 0.55 && impact > 40) {
-    springBounce(robot, hit, vn, legFactor);
+    const boosted = consumeLandingBoost(robot);
+    springBounce(robot, hit, vn, legFactor, boosted ? BOOST_BOUNCE_MULT : 1);
     robot.spin =
       robot.bounceCount === 0
         ? robot.stats.spinRate * 0.35
         : robot.stats.spinRate * 0.9;
     robot.bounceCount += 1;
     robot.airborne = true;
-    flash(robot, legCount(robot) === 1 ? "BOING…?" : "BOING!", 0.65);
-    burstSparks(robot, hit.foot.x, hit.foot.y, "#6fd6b6", 12);
+    if (boosted) {
+      robot.perfectBoosts += 1;
+      flash(robot, "BOOST BOING!", 0.75);
+      burstSparks(robot, hit.foot.x, hit.foot.y, "#f0c43a", 18);
+    } else {
+      flash(robot, legCount(robot) === 1 ? "BOING…?" : "BOING!", 0.65);
+      burstSparks(robot, hit.foot.x, hit.foot.y, "#6fd6b6", 12);
+    }
     return;
   }
 
   // Not planted correctly — lose an appendage (or launch head if stripped)
   if (plant > 0.2) {
     const impactVel = { vx: robot.vx, vy: robot.vy };
+    robot.boostPending = false;
+    robot.boostArmed = 0;
     if (vn < 0) {
       robot.vx -= vn * hit.nx;
       robot.vy -= vn * hit.ny;
@@ -281,28 +329,37 @@ function landOnFeet(robot, hit, speed) {
   crashIntoTerrain(robot, hit, speed, false);
 }
 
+function consumeLandingBoost(robot) {
+  const armed = robot.boostPending && robot.boostArmed > 0;
+  robot.boostPending = false;
+  robot.boostArmed = 0;
+  return armed;
+}
+
 /**
  * Reflect velocity along the surface normal.
  * First bounce aims for ~75% of spawn drop height (e ≈ √0.75, with a vertical
  * assist so steep opening slopes still hop up). Later bounces use spring-leg
  * restitution at ~75% efficiency (scaled by Jump Springs + leg count).
+ * @param {number} boostMult timed pump multiplier (1 = none)
  */
-function springBounce(robot, hit, vn, legFactor) {
+function springBounce(robot, hit, vn, legFactor, boostMult = 1) {
   const vtx = robot.vx - vn * hit.nx;
   const vty = robot.vy - vn * hit.ny;
   const intoSpeed = vn < 0 ? -vn : 0;
+  const pump = Math.max(1, boostMult);
 
   if (robot.bounceCount === 0) {
-    const targetHeight = FIRST_BOUNCE_HEIGHT_RATIO * robot.spawnDropHeight;
+    const targetHeight = FIRST_BOUNCE_HEIGHT_RATIO * robot.spawnDropHeight * pump;
     const neededUp = Math.sqrt(2 * GRAVITY * targetHeight) * legFactor;
     const rebound =
-      intoSpeed * Math.sqrt(FIRST_BOUNCE_HEIGHT_RATIO) * legFactor;
-    robot.vx = vtx + hit.nx * rebound + 30;
+      intoSpeed * Math.sqrt(FIRST_BOUNCE_HEIGHT_RATIO) * legFactor * pump;
+    robot.vx = vtx + hit.nx * rebound + 30 * pump;
     robot.vy = vty + hit.ny * rebound;
     // Guarantee the visible ~75% apex even on downhill-tilted normals.
     if (robot.vy > -neededUp) robot.vy = -neededUp;
     // Keep the opening hop from rocketing the whole mountain in one launch.
-    robot.vx = Math.min(robot.vx, 460);
+    robot.vx = Math.min(robot.vx, 460 * Math.min(pump, 1.15));
     const vnOut = robot.vx * hit.nx + robot.vy * hit.ny;
     if (vnOut < 55) {
       const fix = 55 - vnOut;
@@ -315,9 +372,10 @@ function springBounce(robot, hit, vn, legFactor) {
   const efficiency =
     SPRING_EFFICIENCY *
     legFactor *
-    (robot.stats.bounce / BASE_BOUNCE_STAT);
+    (robot.stats.bounce / BASE_BOUNCE_STAT) *
+    pump;
   const rebound = intoSpeed * efficiency;
-  robot.vx = vtx + hit.nx * rebound + 55;
+  robot.vx = vtx + hit.nx * rebound + 55 * pump;
   robot.vy = vty + hit.ny * rebound;
 }
 
@@ -328,6 +386,8 @@ function crashIntoTerrain(robot, hit, speed, holding) {
   }
 
   robot.damageCooldown = 0.45;
+  robot.boostPending = false;
+  robot.boostArmed = 0;
 
   // Snapshot impact velocity before bounce response (needed for head launch angle)
   const impactVx = robot.vx;

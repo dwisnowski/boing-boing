@@ -25,7 +25,7 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
       levelName: levelDef.name,
       time: 0,
       integrity: integrityRatio(robot),
-      hint: "Hold to stabilize spin · release to tumble",
+      hint: "A/← correct spin · W/↑ pump bounce · Space brace",
     });
     raf = requestAnimationFrame(frame);
   }
@@ -37,23 +37,25 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
     elapsed += dt;
 
     const holding = input.holding;
-    updateRobot(robot, level.terrain, holding, dt);
+    const correcting = input.correcting;
+    const boostPressed = input.consumeBoostPress();
+    updateRobot(robot, level.terrain, { holding, correcting, boostPressed }, dt);
     collectChips(robot, level.chips);
     updateCamera(camera, robot, canvas, level.terrain);
-    drawFrame(ctx, camera, level, robot, holding, elapsed);
+    drawFrame(ctx, camera, level, robot, { holding, correcting }, elapsed);
 
     onHud?.({
       levelName: levelDef.name,
       time: elapsed,
       integrity: integrityRatio(robot),
-      hint: raceHint(robot, holding),
+      hint: raceHint(robot, holding, correcting),
     });
 
     checkEnd();
     raf = requestAnimationFrame(frame);
   }
 
-  function raceHint(bot, holding) {
+  function raceHint(bot, holding, correcting) {
     if (bot.headFlight) return "Tin head in flight — landing ends the run";
     if (bot.headMode && !bot.headLaunched) {
       return "No limbs left — hit the ground to launch the head";
@@ -61,8 +63,12 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
     if (!bot.leftLeg && !bot.rightLeg) {
       return "Legs gone — torso scrapes will cost you";
     }
+    if (bot.boostPending && bot.boostArmed > 0) {
+      return "Boost armed — land NOW for BOOST BOING!";
+    }
+    if (correcting) return "Correcting spin backward…";
     if (holding) return "Stabilizing… (momentum bleeding)";
-    return "Land feet-down to BOING · bad landings shed limbs";
+    return "A/← unwind · W/↑ timed boost · Space brace · land feet-down";
   }
 
   function collectChips(bot, chips) {
@@ -109,6 +115,10 @@ export function createRace({ canvas, input, levelIndex, save, onHud, onFinish })
     if (bot.bounceCount >= 3) {
       extra += 1;
       bits.push("bounce bonus");
+    }
+    if (bot.perfectBoosts >= 2) {
+      extra += 1;
+      bits.push("pump bonus");
     }
     if (bot.flipAcc >= 8) {
       extra += 1;
