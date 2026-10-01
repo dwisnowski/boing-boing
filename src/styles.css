@@ -274,155 +274,120 @@ body {
   }
 }
 
-/* —— Morse Trainer (PCB card) —— */
+/* —— Morse Trainer (photo PCB card, bottom-docked) —— */
 .morse-panel {
-  place-content: stretch center;
-  align-content: center;
-  overflow: auto;
+  display: flex;
+  place-content: stretch;
+  align-items: stretch;
+  overflow: hidden;
+  padding: 0.35rem 0.55rem 0.25rem;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.08), transparent 50%),
-    linear-gradient(180deg, rgba(5, 5, 5, 0.72), rgba(8, 16, 20, 0.92));
+    radial-gradient(ellipse at 50% 100%, rgba(212, 175, 55, 0.1), transparent 55%),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.55), rgba(8, 12, 14, 0.94));
 }
 
 .morse-trainer {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.35rem;
   width: min(420px, 100%);
+  height: 100%;
   margin: 0 auto;
   min-height: 0;
 }
 
-.morse-board {
+.morse-topbar {
+  flex: 0 0 auto;
   width: 100%;
-  max-height: min(58vh, 520px);
-  flex: 0 1 auto;
+  display: grid;
+  gap: 0.3rem;
+  order: -1;
 }
 
-.morse-board-svg {
+.morse-dock {
+  flex: 0 1 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+  margin-top: auto;
+}
+
+.morse-board {
+  width: 100%;
+  max-width: 360px;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.morse-card-face {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.55));
+  transform-origin: center bottom;
+}
+
+.morse-card-img {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(58vh, 520px);
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
+  max-height: min(58vh, 560px);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  background: #050505;
 }
 
-.morse-plate {
-  fill: url(#morse-plate);
-  stroke: #d4af37;
-  stroke-width: 2.5;
+.morse-led-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.morse-plate-rim {
-  stroke: rgba(212, 175, 55, 0.35);
-  stroke-width: 1;
-}
-
-.morse-mount-hole {
-  fill: #0a0a0a;
-  stroke: #d4af37;
-  stroke-width: 1.5;
-}
-
-.morse-title {
-  fill: #d4af37;
-  font-family: "IBM Plex Sans", sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.18em;
-}
-
-.morse-antenna line {
-  stroke: #d4af37;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-
-.morse-antenna .morse-node-pad {
-  fill: #d4af37;
-  stroke: none;
-}
-
-.morse-trace {
-  fill: none;
-  stroke: #d4af37;
-  stroke-width: 1.35;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  opacity: 0.85;
-  transition:
-    stroke 0.15s ease,
-    opacity 0.15s ease,
-    filter 0.15s ease;
-}
-
-.morse-trace.is-lit {
-  stroke: #ff4444;
-  opacity: 1;
-  filter: drop-shadow(0 0 3px #ff0000);
-}
-
-.morse-node-pad {
-  fill: #0a0a0a;
-  stroke: #d4af37;
-  stroke-width: 1.4;
-  transition: fill 0.12s ease, stroke 0.12s ease;
-}
-
-.morse-led {
-  fill: transparent;
-  stroke: none;
+.morse-led-dot {
+  position: absolute;
+  width: 5.8%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
   opacity: 0;
-  transition: opacity 0.12s ease, fill 0.12s ease;
-  pointer-events: none;
+  background: transparent;
+  transition:
+    opacity 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
 }
 
-.morse-node.is-lit .morse-led {
+.morse-led-dot.is-lit {
   opacity: 1;
-  filter: url(#morse-led-glow);
 }
 
-.morse-node.led-red .morse-led {
-  fill: #ff0000;
+.morse-led-dot.led-red {
+  background: radial-gradient(circle, #ff3b3b 0%, #ff0000 40%, transparent 72%);
+  box-shadow:
+    0 0 10px 4px rgba(255, 0, 0, 0.85),
+    0 0 22px 8px rgba(255, 40, 0, 0.45);
 }
 
-.morse-node.led-green .morse-led {
-  fill: #00ff66;
+.morse-led-dot.led-green {
+  background: radial-gradient(circle, #6dff9a 0%, #00ff66 40%, transparent 72%);
+  box-shadow:
+    0 0 10px 4px rgba(0, 255, 100, 0.85),
+    0 0 22px 8px rgba(0, 255, 80, 0.4);
 }
 
-.morse-node.is-lit.led-red .morse-node-pad {
-  stroke: #ff6666;
+.morse-led-dot.is-current {
+  width: 7%;
 }
 
-.morse-node.is-lit.led-green .morse-node-pad {
-  stroke: #66ff99;
-}
-
-.morse-letter {
-  fill: #e8d48b;
-  font-family: "IBM Plex Sans", sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  pointer-events: none;
-}
-
-.morse-node.is-lit .morse-letter {
-  fill: #fff4c2;
-}
-
-.morse-speaker-core {
-  fill: #d4af37;
-}
-
-.morse-speaker-arc {
-  stroke: #d4af37;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-}
-
-.morse-board-error .morse-plate {
-  stroke: #ff4444;
+.morse-card-face.morse-board-error {
   animation: morse-shake 0.28s ease;
 }
 
@@ -454,29 +419,48 @@ body {
 }
 
 .morse-message {
-  margin: 0.2rem 0 0;
-  min-height: 1.5rem;
+  margin: 0.05rem 0 0;
+  min-height: 1.2rem;
   font-family: "IBM Plex Sans", sans-serif;
   font-weight: 700;
-  font-size: clamp(1.1rem, 3.5vw, 1.45rem);
-  letter-spacing: 0.12em;
+  font-size: clamp(1.05rem, 3.4vw, 1.4rem);
+  letter-spacing: 0.14em;
   color: #f5e6a8;
   word-break: break-word;
 }
 
 .morse-status {
-  margin: 0.15rem 0 0;
-  font-size: 0.8rem;
+  margin: 0.05rem 0 0;
+  font-size: 0.72rem;
   opacity: 0.7;
   color: var(--sand);
 }
 
 .morse-controls {
   width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
 }
 
-.morse-controls .btn {
-  min-width: 4.5rem;
+.morse-controls-secondary .btn {
+  min-width: 4.2rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.morse-controls-primary {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr 1fr;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.morse-controls-primary .btn {
+  width: 100%;
+  min-height: 3.1rem;
+  font-size: 1rem;
 }
 
 .morse-paddle.is-down,
@@ -485,6 +469,11 @@ body {
   background: linear-gradient(180deg, #5a4a1a, #3a3010);
   color: #ffe9a0;
   box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.morse-help {
+  margin: 0;
+  text-align: center;
 }
 
 .morse-help kbd {
@@ -519,29 +508,32 @@ body {
     width: 100%;
   }
 
-  .morse-controls {
+  .morse-panel {
+    padding: 0.4rem 0.45rem 0.25rem;
+  }
+
+  .morse-controls-secondary {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.45rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.3rem;
   }
 
-  .morse-controls .btn {
+  .morse-controls-secondary .btn {
     width: 100%;
-  }
-
-  .morse-controls .morse-paddle {
-    grid-column: 1 / -1;
-  }
-
-  .morse-controls .morse-element {
     min-width: 0;
+    padding: 0.5rem 0.2rem;
+    font-size: 0.78rem;
   }
 
-  .morse-board {
-    max-height: min(48vh, 420px);
+  .morse-card-img {
+    max-height: min(52vh, 480px);
   }
 
-  .morse-board-svg {
-    max-height: min(48vh, 420px);
+  .morse-controls-primary .btn {
+    min-height: 3.4rem;
+  }
+
+  .morse-help {
+    font-size: 0.75rem;
   }
 }
