@@ -10,11 +10,12 @@ import { MORSE_ROOT, flattenTree } from "./tree.js";
 
 const GOLD = "#d6c7a1";
 const GOLD_DIM = "rgba(214, 199, 161, 0.85)";
-const GOLD_LIT = "#f0e0a8";
+const GOLD_LIT = "#ffd45a";
+const GOLD_CORE = "#ffe9a0";
 const INK = "#050505";
 const LOGICAL_W = 360;
 const LOGICAL_H = 500;
-const SEGMENT_MS = 220;
+const SEGMENT_MS = 260;
 
 /**
  * Node positions in logical canvas space.
@@ -295,8 +296,8 @@ export function createBoard(mount) {
     c.lineCap = "round";
     c.lineJoin = "round";
     if (glow) {
-      c.shadowColor = "rgba(240, 224, 168, 0.65)";
-      c.shadowBlur = width * 2.2;
+      c.shadowColor = "rgba(255, 200, 60, 0.85)";
+      c.shadowBlur = width * 3.2;
     } else {
       c.shadowBlur = 0;
     }
@@ -443,40 +444,16 @@ export function createBoard(mount) {
       });
     }
 
-    // Animated gold traces along keyed path
-    const chain = activeEdgeChain(litPath);
-    const { drawnCount, partial } = segmentProgress(anim);
-    for (let i = 0; i < chain.length; i++) {
-      const edge = chain[i];
-      const a = LAYOUT[edge.from];
-      const b = LAYOUT[edge.to];
-      if (!a || !b) continue;
-      const fullPts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
-
-      let prog = 0;
-      if (i < drawnCount) prog = 1;
-      else if (i === drawnCount) prog = partial;
-      else prog = 0;
-      if (prog <= 0) continue;
-
-      const pts = partialPolyline(fullPts, prog);
-      const complete = prog >= 1;
-      strokePolyline(ctx, pts, {
-        color: GOLD_LIT,
-        width: Math.max(1.2, 1.85 * s),
-        glow: true,
-        dashOffset: complete ? flow : 0,
-      });
-    }
-
     // Nodes + LEDs + labels
     // Dah (rect) → red LED; Dit (circle) → green LED
     ctx.font = `700 ${Math.round(11 * s)}px "IBM Plex Sans", sans-serif`;
     ctx.textBaseline = "middle";
 
-    // Only light a node once its inbound trace has finished drawing
+    const chain = activeEdgeChain(litPath);
+    const { drawnCount, partial } = segmentProgress(anim);
+    // Only light a node once its inbound trace has mostly drawn in
     const litReady = new Set(litPath.slice(0, drawnCount));
-    if (partial >= 0.92 && drawnCount < litPath.length) {
+    if (partial >= 0.88 && drawnCount < litPath.length) {
       litReady.add(litPath[drawnCount]);
     }
 
@@ -547,6 +524,71 @@ export function createBoard(mount) {
       ctx.fillStyle = on ? "#fff4c2" : GOLD;
       ctx.textAlign = off.dx < 0 ? "end" : off.dx === 0 ? "center" : "start";
       ctx.fillText(node.letter, p.x + off.dx * s, p.y + off.dy * s);
+    }
+
+    // Animated gold traces drawn ON TOP so they read clearly as gold (not green-tinted by LED glow)
+    for (let i = 0; i < chain.length; i++) {
+      const edge = chain[i];
+      const a = LAYOUT[edge.from];
+      const b = LAYOUT[edge.to];
+      if (!a || !b) continue;
+      const fullPts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
+
+      let prog = 0;
+      if (i < drawnCount) prog = 1;
+      else if (i === drawnCount) prog = partial;
+      else prog = 0;
+      if (prog <= 0) continue;
+
+      const pts = partialPolyline(fullPts, prog);
+      const complete = prog >= 1;
+      // Wide warm underglow
+      strokePolyline(ctx, pts, {
+        color: "rgba(255, 180, 40, 0.55)",
+        width: Math.max(2.4, 3.4 * s),
+        glow: true,
+      });
+      // Bright gold body
+      strokePolyline(ctx, pts, {
+        color: GOLD_LIT,
+        width: Math.max(1.6, 2.15 * s),
+        glow: true,
+        dashOffset: complete ? flow : 0,
+      });
+      // Hot core
+      strokePolyline(ctx, pts, {
+        color: GOLD_CORE,
+        width: Math.max(0.9, 1.1 * s),
+      });
+    }
+
+    // Stem antenna → root (re-draw lit so it stays gold above LEDs)
+    if (stemActive) {
+      strokePolyline(
+        ctx,
+        [
+          { x: ant.x, y: ant.y + 12 * s },
+          { x: root.x, y: root.y },
+        ],
+        {
+          color: "rgba(255, 180, 40, 0.55)",
+          width: Math.max(2.2, 3.1 * s),
+          glow: true,
+        }
+      );
+      strokePolyline(
+        ctx,
+        [
+          { x: ant.x, y: ant.y + 12 * s },
+          { x: root.x, y: root.y },
+        ],
+        {
+          color: GOLD_LIT,
+          width: Math.max(1.5, 2 * s),
+          glow: true,
+          dashOffset: flow,
+        }
+      );
     }
 
     const sp = toScreen(180, 455);

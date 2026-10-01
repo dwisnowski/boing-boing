@@ -16,9 +16,9 @@ export function defaultTiming(overrides = {}) {
     unitMs,
     // Presses shorter than this are dits; longer are dahs.
     ditThresholdMs: overrides.ditThresholdMs ?? unitMs * 2.4,
-    // Forgiving gaps so on-screen Key taps can form multi-element letters.
-    letterGapMs: overrides.letterGapMs ?? Math.max(520, unitMs * 5.5),
-    wordGapMs: overrides.wordGapMs ?? Math.max(1800, unitMs * 18),
+    // Forgiving gaps so on-screen Dit/Dah taps can form multi-element letters.
+    letterGapMs: overrides.letterGapMs ?? Math.max(900, unitMs * 9),
+    wordGapMs: overrides.wordGapMs ?? Math.max(2200, unitMs * 22),
   };
 }
 

@@ -104,9 +104,15 @@ export function createTrainer(els) {
     } else if (current !== MORSE_ROOT) {
       setStatus("No letter at this node");
     }
+    // Hold the lit gold path briefly so the completed letter is visible
+    const holdMs = 380;
     current = MORSE_ROOT;
     path = [];
-    board.clearPath();
+    window.setTimeout(() => {
+      if (path.length === 0 && current === MORSE_ROOT) {
+        board.clearPath();
+      }
+    }, holdMs);
   }
 
   function renderMessage() {
