@@ -1,15 +1,20 @@
 /**
  * Vector Morse Trainer Card drawn on HTML Canvas.
  * Layout matches the dichotomous PCB chart (tight card crop).
+ *
+ * LEDs: dit (circle) = green, dah (rect) = red
+ * Keyed traces: animated gold leading into lit LEDs
  */
 
 import { MORSE_ROOT, flattenTree } from "./tree.js";
 
 const GOLD = "#d6c7a1";
 const GOLD_DIM = "rgba(214, 199, 161, 0.85)";
+const GOLD_LIT = "#f0e0a8";
 const INK = "#050505";
 const LOGICAL_W = 360;
 const LOGICAL_H = 500;
+const SEGMENT_MS = 220;
 
 /**
  * Node positions in logical canvas space.
@@ -84,18 +89,17 @@ const LABEL_OFFSET = {
 
 function collectEdges(node = MORSE_ROOT, edges = []) {
   if (node.dash) {
-    edges.push({ from: node.id, to: node.dash.id });
+    edges.push({ from: node.id, to: node.dash.id, branch: "dash" });
     collectEdges(node.dash, edges);
   }
   if (node.dot) {
-    edges.push({ from: node.id, to: node.dot.id });
+    edges.push({ from: node.id, to: node.dot.id, branch: "dot" });
     collectEdges(node.dot, edges);
   }
   return edges;
 }
 
 function elbowPath(a, b) {
-  // Orthogonal PCB-style elbow: vertical then horizontal then vertical
   const midY = (a.y + b.y) / 2;
   return [
     { x: a.x, y: a.y },
@@ -103,6 +107,47 @@ function elbowPath(a, b) {
     { x: b.x, y: midY },
     { x: b.x, y: b.y },
   ];
+}
+
+function pathLength(pts) {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x;
+    const dy = pts[i].y - pts[i - 1].y;
+    len += Math.hypot(dx, dy);
+  }
+  return len;
+}
+
+/** Walk `progress` (0–1) along polyline; returns points up to that fraction. */
+function partialPolyline(pts, progress) {
+  if (progress >= 1) return pts.slice();
+  if (progress <= 0 || pts.length < 2) return [pts[0]];
+  const total = pathLength(pts);
+  let remain = total * progress;
+  const out = [{ x: pts[0].x, y: pts[0].y }];
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x;
+    const dy = pts[i].y - pts[i - 1].y;
+    const seg = Math.hypot(dx, dy);
+    if (remain >= seg) {
+      out.push({ x: pts[i].x, y: pts[i].y });
+      remain -= seg;
+    } else {
+      const t = seg === 0 ? 0 : remain / seg;
+      out.push({
+        x: pts[i - 1].x + dx * t,
+        y: pts[i - 1].y + dy * t,
+      });
+      break;
+    }
+  }
+  return out;
+}
+
+function easeOutCubic(t) {
+  const u = Math.min(1, Math.max(0, t));
+  return 1 - (1 - u) ** 3;
 }
 
 /**
@@ -127,13 +172,20 @@ export function createBoard(mount) {
   let cssW = LOGICAL_W;
   let cssH = LOGICAL_H;
 
-  /** @type {Set<string>} */
-  let lit = new Set();
+  /** @type {string[]} */
+  let litPath = [];
   /** @type {string | null} */
   let current = null;
   let errorFlash = 0;
   let anim = 0;
   let raf = 0;
+  /** Trace draw-in animation */
+  let traceAnim = {
+    /** @type {string[]} */
+    pathIds: [],
+    fromCount: 0,
+    startedAt: 0,
+  };
 
   function resize() {
     const parentW = mount.clientWidth || LOGICAL_W;
@@ -172,17 +224,14 @@ export function createBoard(mount) {
     c.fillStyle = GOLD;
     c.lineWidth = Math.max(1.2, s * 0.08);
     c.lineCap = "round";
-    // mast
     c.beginPath();
     c.moveTo(x, y + s * 0.55);
     c.lineTo(x, y - s * 0.35);
     c.stroke();
-    // top bar
     c.beginPath();
     c.moveTo(x - s * 0.35, y - s * 0.2);
     c.lineTo(x + s * 0.35, y - s * 0.2);
     c.stroke();
-    // triangle tip
     c.beginPath();
     c.moveTo(x, y - s * 0.55);
     c.lineTo(x - s * 0.22, y - s * 0.22);
@@ -203,7 +252,13 @@ export function createBoard(mount) {
       for (let i = 1; i <= 3; i++) {
         const r = s * (0.22 + i * 0.16);
         c.beginPath();
-        c.arc(x, y, r, side < 0 ? Math.PI * 0.65 : -Math.PI * 0.35, side < 0 ? Math.PI * 1.35 : Math.PI * 0.35);
+        c.arc(
+          x,
+          y,
+          r,
+          side < 0 ? Math.PI * 0.65 : -Math.PI * 0.35,
+          side < 0 ? Math.PI * 1.35 : Math.PI * 0.35
+        );
         c.stroke();
       }
     }
@@ -233,6 +288,63 @@ export function createBoard(mount) {
     c.fill();
   }
 
+  function strokePolyline(c, pts, { color, width, glow = false, dashOffset = 0 }) {
+    if (pts.length < 2) return;
+    c.strokeStyle = color;
+    c.lineWidth = width;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    if (glow) {
+      c.shadowColor = "rgba(240, 224, 168, 0.65)";
+      c.shadowBlur = width * 2.2;
+    } else {
+      c.shadowBlur = 0;
+    }
+    if (dashOffset) {
+      c.setLineDash([width * 3.5, width * 2.2]);
+      c.lineDashOffset = -dashOffset;
+    } else {
+      c.setLineDash([]);
+      c.lineDashOffset = 0;
+    }
+    c.beginPath();
+    c.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+    c.stroke();
+    c.setLineDash([]);
+    c.lineDashOffset = 0;
+    c.shadowBlur = 0;
+  }
+
+  /** Ordered active edges from root → current, for draw-in animation. */
+  function activeEdgeChain(pathIds) {
+    const chain = [];
+    let prev = "root";
+    for (const id of pathIds) {
+      chain.push({ from: prev, to: id });
+      prev = id;
+    }
+    return chain;
+  }
+
+  function segmentProgress(now) {
+    const pathIds = traceAnim.pathIds;
+    if (!pathIds.length) return { drawnCount: 0, partial: 0 };
+    const newSegs = Math.max(0, pathIds.length - traceAnim.fromCount);
+    if (newSegs === 0) {
+      return { drawnCount: pathIds.length, partial: 1 };
+    }
+    const elapsed = Math.max(0, now - traceAnim.startedAt);
+    const total = newSegs * SEGMENT_MS;
+    const t = easeOutCubic(elapsed / total);
+    const f = t * newSegs;
+    const full = Math.floor(f);
+    return {
+      drawnCount: traceAnim.fromCount + full,
+      partial: f - full,
+    };
+  }
+
   function paint() {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -242,6 +354,7 @@ export function createBoard(mount) {
     const sy = cssH / LOGICAL_H;
     const s = Math.min(sx, sy);
     const pulse = 0.5 + 0.5 * Math.sin(anim * 0.006);
+    const flow = (anim * 0.05) % 40;
 
     // Card plate
     const pad = 6 * s;
@@ -261,7 +374,6 @@ export function createBoard(mount) {
     drawRoundedRect(ctx, plateX, plateY, plateW, plateH, radius);
     ctx.stroke();
 
-    // Inner rim
     ctx.strokeStyle = "rgba(214, 199, 161, 0.35)";
     ctx.lineWidth = Math.max(1, 1.1 * s);
     drawRoundedRect(
@@ -297,69 +409,103 @@ export function createBoard(mount) {
     const ant = toScreen(180, 40);
     drawAntenna(ctx, ant.x, ant.y, 22 * s);
 
-    // Stem from antenna to fork
+    // Stem antenna → root
     const root = toScreen(LAYOUT.root.x, LAYOUT.root.y);
-    ctx.strokeStyle = GOLD_DIM;
-    ctx.lineWidth = Math.max(1.1, 1.35 * s);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(ant.x, ant.y + 12 * s);
-    ctx.lineTo(root.x, root.y);
-    ctx.stroke();
+    const stemActive = litPath.length > 0;
+    strokePolyline(
+      ctx,
+      [
+        { x: ant.x, y: ant.y + 12 * s },
+        { x: root.x, y: root.y },
+      ],
+      {
+        color: stemActive ? GOLD_LIT : GOLD_DIM,
+        width: Math.max(1.1, (stemActive ? 1.7 : 1.3) * s),
+        glow: stemActive,
+        dashOffset: stemActive ? flow : 0,
+      }
+    );
 
-    // Traces
-    const litList = [...lit];
+    // Idle traces (dim gold)
+    const litSet = new Set(litPath);
     for (const edge of edges) {
       const a = LAYOUT[edge.from];
       const b = LAYOUT[edge.to];
       if (!a || !b) continue;
-      const pts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
       const active =
-        (edge.from === "root" && lit.has(edge.to)) ||
-        (lit.has(edge.from) && lit.has(edge.to));
-      ctx.strokeStyle = active ? "#ff5555" : GOLD_DIM;
-      ctx.lineWidth = Math.max(1.1, (active ? 1.7 : 1.3) * s);
-      if (active) {
-        ctx.shadowColor = "rgba(255,0,0,0.55)";
-        ctx.shadowBlur = 6 * s;
-      } else {
-        ctx.shadowBlur = 0;
-      }
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+        (edge.from === "root" && litSet.has(edge.to)) ||
+        (litSet.has(edge.from) && litSet.has(edge.to));
+      if (active) continue; // drawn in animated pass
+      const pts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
+      strokePolyline(ctx, pts, {
+        color: GOLD_DIM,
+        width: Math.max(1.1, 1.3 * s),
+      });
+    }
+
+    // Animated gold traces along keyed path
+    const chain = activeEdgeChain(litPath);
+    const { drawnCount, partial } = segmentProgress(anim);
+    for (let i = 0; i < chain.length; i++) {
+      const edge = chain[i];
+      const a = LAYOUT[edge.from];
+      const b = LAYOUT[edge.to];
+      if (!a || !b) continue;
+      const fullPts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
+
+      let prog = 0;
+      if (i < drawnCount) prog = 1;
+      else if (i === drawnCount) prog = partial;
+      else prog = 0;
+      if (prog <= 0) continue;
+
+      const pts = partialPolyline(fullPts, prog);
+      const complete = prog >= 1;
+      strokePolyline(ctx, pts, {
+        color: GOLD_LIT,
+        width: Math.max(1.2, 1.85 * s),
+        glow: true,
+        dashOffset: complete ? flow : 0,
+      });
     }
 
     // Nodes + LEDs + labels
+    // Dah (rect) → red LED; Dit (circle) → green LED
     ctx.font = `700 ${Math.round(11 * s)}px "IBM Plex Sans", sans-serif`;
     ctx.textBaseline = "middle";
+
+    // Only light a node once its inbound trace has finished drawing
+    const litReady = new Set(litPath.slice(0, drawnCount));
+    if (partial >= 0.92 && drawnCount < litPath.length) {
+      litReady.add(litPath[drawnCount]);
+    }
 
     for (const node of nodes) {
       const pos = LAYOUT[node.id];
       if (!pos) continue;
       const p = toScreen(pos.x, pos.y);
-      const on = lit.has(node.id);
-      const idx = litList.indexOf(node.id);
-      const isGreen = on && idx % 2 === 1;
-      const isRed = on && idx % 2 === 0;
-      const isCurrent = node.id === current;
+      const on = litReady.has(node.id);
+      const isDah = node.shape === "rect";
+      const kind = isDah ? "red" : "green";
+      const isCurrent = node.id === current && on;
 
       if (on) {
         drawGlow(
           ctx,
           p.x,
           p.y,
-          isGreen ? "green" : "red",
+          kind,
           (isCurrent ? 16 : 13) * s * (0.92 + pulse * 0.08),
           pulse
         );
       }
 
       ctx.lineWidth = Math.max(1.2, 1.45 * s);
-      ctx.strokeStyle = on ? (isGreen ? "#66ff99" : "#ff6666") : GOLD;
+      ctx.strokeStyle = on
+        ? isDah
+          ? "#ff6666"
+          : "#66ff99"
+        : GOLD;
       ctx.fillStyle = INK;
 
       if (node.shape === "rect") {
@@ -381,17 +527,24 @@ export function createBoard(mount) {
       ctx.fillText(node.letter, p.x + off.dx * s, p.y + off.dy * s);
     }
 
-    // Footer speaker
     const sp = toScreen(180, 455);
     drawSpeaker(ctx, sp.x, sp.y, 28 * s);
 
     if (errorFlash > 0) errorFlash -= 1;
   }
 
+  function animComplete(now) {
+    if (!litPath.length) return true;
+    const newSegs = Math.max(0, litPath.length - traceAnim.fromCount);
+    if (newSegs === 0) return true;
+    return now - traceAnim.startedAt >= newSegs * SEGMENT_MS;
+  }
+
   function tick(now) {
     anim = now;
     paint();
-    const needsAnim = lit.size > 0 || errorFlash > 0;
+    const needsAnim =
+      litPath.length > 0 || errorFlash > 0 || !animComplete(now);
     if (needsAnim) raf = requestAnimationFrame(tick);
     else raf = 0;
   }
@@ -405,15 +558,34 @@ export function createBoard(mount) {
    * @param {string | null} currentId
    */
   function setPath(pathIds, currentId = null) {
-    lit = new Set(pathIds);
-    current = currentId || (pathIds.length ? pathIds[pathIds.length - 1] : null);
+    const next = pathIds.slice();
+    // Shared prefix stays drawn; animate only new segments
+    let shared = 0;
+    while (
+      shared < litPath.length &&
+      shared < next.length &&
+      litPath[shared] === next[shared]
+    ) {
+      shared += 1;
+    }
+    const fromCount =
+      next.length >= litPath.length ? Math.min(shared, next.length) : 0;
+
+    litPath = next;
+    current = currentId || (next.length ? next[next.length - 1] : null);
+    traceAnim = {
+      pathIds: next,
+      fromCount,
+      startedAt: performance.now(),
+    };
     ensureAnim();
     paint();
   }
 
   function clearPath() {
-    lit = new Set();
+    litPath = [];
     current = null;
+    traceAnim = { pathIds: [], fromCount: 0, startedAt: 0 };
     paint();
   }
 
