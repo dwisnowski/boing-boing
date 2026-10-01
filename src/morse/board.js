@@ -501,13 +501,13 @@ export function createBoard(mount) {
       }
 
       // Dah pads = red LEDs; dit pads = green LEDs (dim when idle, bright when lit)
-      ctx.lineWidth = Math.max(1.2, 1.45 * s);
+      ctx.lineWidth = Math.max(1.3, 1.55 * s);
       if (isDah) {
-        ctx.strokeStyle = on ? "#ff6b5a" : "rgba(200, 70, 55, 0.9)";
-        ctx.fillStyle = on ? "#3a0a08" : "#1a0806";
+        ctx.strokeStyle = on ? "#ff7a66" : "#c44a3a";
+        ctx.fillStyle = on ? "#5a100c" : "#4a1812";
       } else {
-        ctx.strokeStyle = on ? "#5dff9a" : "rgba(50, 170, 90, 0.9)";
-        ctx.fillStyle = on ? "#062014" : "#06140c";
+        ctx.strokeStyle = on ? "#66ff9a" : "#2e9a58";
+        ctx.fillStyle = on ? "#0a3a1c" : "#143a22";
       }
 
       if (node.shape === "rect") {
@@ -516,29 +516,31 @@ export function createBoard(mount) {
         drawRoundedRect(ctx, p.x - rw / 2, p.y - rh / 2, rw, rh, 2 * s);
         ctx.fill();
         ctx.stroke();
-        if (on) {
-          ctx.fillStyle = "rgba(255, 90, 70, 0.55)";
-          drawRoundedRect(
-            ctx,
-            p.x - rw * 0.28,
-            p.y - rh * 0.22,
-            rw * 0.56,
-            rh * 0.44,
-            s
-          );
-          ctx.fill();
-        }
+        // LED lens highlight
+        ctx.fillStyle = on
+          ? "rgba(255, 110, 90, 0.75)"
+          : "rgba(220, 80, 60, 0.45)";
+        drawRoundedRect(
+          ctx,
+          p.x - rw * 0.28,
+          p.y - rh * 0.22,
+          rw * 0.56,
+          rh * 0.44,
+          s
+        );
+        ctx.fill();
       } else {
         ctx.beginPath();
         ctx.arc(p.x, p.y, 5.2 * s, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        if (on) {
-          ctx.beginPath();
-          ctx.fillStyle = "rgba(80, 255, 140, 0.65)";
-          ctx.arc(p.x, p.y, 2.6 * s, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        // LED lens highlight
+        ctx.beginPath();
+        ctx.fillStyle = on
+          ? "rgba(100, 255, 150, 0.8)"
+          : "rgba(70, 200, 110, 0.45)";
+        ctx.arc(p.x, p.y, 2.6 * s, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       const off = LABEL_OFFSET[node.id] || { dx: 12, dy: 0 };
