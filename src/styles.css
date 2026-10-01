@@ -38,6 +38,39 @@ body {
   overflow: hidden;
 }
 
+body[data-route="home"],
+body[data-route="game"],
+body[data-route="morse"] {
+  place-items: stretch;
+  padding: 0;
+}
+
+body[data-route="home"],
+body[data-route="morse"] {
+  overflow: auto;
+}
+
+body[data-route="game"] {
+  overflow: hidden;
+}
+
+.page {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.page[hidden] {
+  display: none !important;
+}
+
+.page-game {
+  display: grid;
+  place-items: center;
+  padding: 0.6rem;
+  box-sizing: border-box;
+}
+
 #app {
   width: min(1400px, 100%);
   height: 90vh;
@@ -59,6 +92,27 @@ body {
   flex: 0 0 auto;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.brand-link {
+  color: var(--steel);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.brand-link:hover,
+.brand-link:focus-visible {
+  color: var(--mint);
+  outline: none;
+}
+
 .brand {
   margin: 0;
   font-family: Bungee, cursive;
@@ -66,6 +120,90 @@ body {
   color: var(--mint);
   letter-spacing: 0.04em;
   text-shadow: 0 0 16px var(--glow);
+}
+
+/* —— Home chooser —— */
+.page-home {
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background:
+    radial-gradient(ellipse at 20% 10%, #1d3a44 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 90%, #2a2410 0%, transparent 40%),
+    linear-gradient(160deg, #070d10 0%, var(--ink) 50%, #101c22 100%);
+}
+
+.home-shell {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 1rem;
+  text-align: center;
+}
+
+.home-brand {
+  margin: 0;
+  font-family: Bungee, cursive;
+  font-size: clamp(2.2rem, 9vw, 3.6rem);
+  color: var(--mint);
+  text-shadow:
+    0 4px 0 #0b2a30,
+    0 0 24px var(--glow);
+  animation: bob 1.8s ease-in-out infinite;
+}
+
+.home-copy {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.home-choices {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.home-card {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--sand);
+  padding: 1.1rem 1.15rem;
+  border: 2px solid rgba(158, 180, 189, 0.35);
+  background: rgba(14, 24, 30, 0.88);
+  transition:
+    border-color 0.12s ease,
+    transform 0.12s ease,
+    background 0.12s ease;
+}
+
+.home-card:hover,
+.home-card:focus-visible {
+  border-color: var(--mint);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.home-card-morse:hover,
+.home-card-morse:focus-visible {
+  border-color: #d4af37;
+}
+
+.home-card-title {
+  font-family: Bungee, cursive;
+  font-size: 1.25rem;
+  color: var(--mint);
+  letter-spacing: 0.03em;
+}
+
+.home-card-morse .home-card-title {
+  color: #d4af37;
+}
+
+.home-card-copy {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  opacity: 0.88;
 }
 
 .chips {
@@ -274,139 +412,81 @@ body {
   }
 }
 
-/* —— Morse Trainer (photo PCB card, bottom-docked) —— */
-.morse-panel {
-  display: flex;
-  place-content: stretch;
-  align-items: stretch;
-  overflow: hidden;
-  padding: 0.35rem 0.55rem 0.25rem;
+/* —— Morse Trainer page (mobile-first, canvas card) —— */
+.page-morse {
   background:
-    radial-gradient(ellipse at 50% 100%, rgba(212, 175, 55, 0.1), transparent 55%),
-    linear-gradient(180deg, rgba(5, 5, 5, 0.55), rgba(8, 12, 14, 0.94));
+    radial-gradient(ellipse at 50% 100%, rgba(212, 175, 55, 0.1), transparent 50%),
+    linear-gradient(180deg, #07090b 0%, #0c1418 55%, #101018 100%);
 }
 
-.morse-trainer {
+.morse-page {
+  width: min(440px, 100%);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(0.55rem, env(safe-area-inset-top))
+    max(0.65rem, env(safe-area-inset-right))
+    max(0.45rem, env(safe-area-inset-bottom))
+    max(0.65rem, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.35rem;
-  width: min(420px, 100%);
-  height: 100%;
-  margin: 0 auto;
-  min-height: 0;
+  gap: 0.4rem;
+  box-sizing: border-box;
 }
 
-.morse-topbar {
+.morse-page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
   flex: 0 0 auto;
-  width: 100%;
-  display: grid;
-  gap: 0.3rem;
-  order: -1;
+}
+
+.morse-page-title {
+  margin: 0;
+  font-family: Bungee, cursive;
+  font-size: clamp(1.1rem, 4.5vw, 1.45rem);
+  color: #d4af37;
+  letter-spacing: 0.04em;
 }
 
 .morse-dock {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: flex-end;
+  gap: 0.4rem;
   min-height: 0;
   margin-top: auto;
+  padding-bottom: 0.15rem;
 }
 
 .morse-board {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
+  display: flex;
+  justify-content: center;
   flex: 0 1 auto;
   min-height: 0;
 }
 
-.morse-card-face {
-  position: relative;
-  width: 100%;
-  line-height: 0;
-  border-radius: 18px;
-  overflow: hidden;
-  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.55));
-  transform-origin: center bottom;
-}
-
-.morse-card-img {
+.morse-board-canvas {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(58vh, 560px);
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-  background: #050505;
-}
-
-.morse-led-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.morse-led-dot {
-  position: absolute;
-  width: 5.8%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  opacity: 0;
-  background: transparent;
-  transition:
-    opacity 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
-}
-
-.morse-led-dot.is-lit {
-  opacity: 1;
-}
-
-.morse-led-dot.led-red {
-  background: radial-gradient(circle, #ff3b3b 0%, #ff0000 40%, transparent 72%);
-  box-shadow:
-    0 0 10px 4px rgba(255, 0, 0, 0.85),
-    0 0 22px 8px rgba(255, 40, 0, 0.45);
-}
-
-.morse-led-dot.led-green {
-  background: radial-gradient(circle, #6dff9a 0%, #00ff66 40%, transparent 72%);
-  box-shadow:
-    0 0 10px 4px rgba(0, 255, 100, 0.85),
-    0 0 22px 8px rgba(0, 255, 80, 0.4);
-}
-
-.morse-led-dot.is-current {
-  width: 7%;
-}
-
-.morse-card-face.morse-board-error {
-  animation: morse-shake 0.28s ease;
-}
-
-@keyframes morse-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-3px);
-  }
-  75% {
-    transform: translateX(3px);
-  }
+  max-width: 100%;
+  touch-action: none;
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.55));
+  border-radius: 18px;
 }
 
 .morse-readout {
   width: 100%;
   text-align: center;
+  flex: 0 0 auto;
 }
 
 .morse-label {
@@ -423,7 +503,7 @@ body {
   min-height: 1.2rem;
   font-family: "IBM Plex Sans", sans-serif;
   font-weight: 700;
-  font-size: clamp(1.05rem, 3.4vw, 1.4rem);
+  font-size: clamp(1.15rem, 4vw, 1.5rem);
   letter-spacing: 0.14em;
   color: #f5e6a8;
   word-break: break-word;
@@ -431,7 +511,7 @@ body {
 
 .morse-status {
   margin: 0.05rem 0 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   opacity: 0.7;
   color: var(--sand);
 }
@@ -442,25 +522,36 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.morse-controls-secondary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
 }
 
 .morse-controls-secondary .btn {
-  min-width: 4.2rem;
-  padding: 0.55rem 0.85rem;
-  font-size: 0.85rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.35rem;
+  font-size: 0.82rem;
 }
 
 .morse-controls-primary {
   display: grid;
-  grid-template-columns: 1fr 1.35fr 1fr;
+  grid-template-columns: 1fr 1.4fr 1fr;
   gap: 0.45rem;
   width: 100%;
 }
 
 .morse-controls-primary .btn {
   width: 100%;
-  min-height: 3.1rem;
-  font-size: 1rem;
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .morse-paddle.is-down,
@@ -474,6 +565,7 @@ body {
 .morse-help {
   margin: 0;
   text-align: center;
+  font-size: 0.78rem;
 }
 
 .morse-help kbd {
@@ -487,7 +579,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  body {
+  .page-game {
     padding: 0.35rem;
   }
 
@@ -504,36 +596,18 @@ body {
     flex-direction: column;
   }
 
-  .btn {
+  .page-game .btn {
     width: 100%;
-  }
-
-  .morse-panel {
-    padding: 0.4rem 0.45rem 0.25rem;
-  }
-
-  .morse-controls-secondary {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.3rem;
-  }
-
-  .morse-controls-secondary .btn {
-    width: 100%;
-    min-width: 0;
-    padding: 0.5rem 0.2rem;
-    font-size: 0.78rem;
-  }
-
-  .morse-card-img {
-    max-height: min(52vh, 480px);
   }
 
   .morse-controls-primary .btn {
-    min-height: 3.4rem;
+    min-height: 3.6rem;
   }
+}
 
-  .morse-help {
-    font-size: 0.75rem;
+@media (min-width: 720px) {
+  .morse-page {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
   }
 }
