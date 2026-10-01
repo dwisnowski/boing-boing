@@ -47,11 +47,42 @@
           <div class="panel-actions">
             <button type="button" id="btn-tournament" class="btn primary">Tournament</button>
             <button type="button" id="btn-quick" class="btn">Quick Race</button>
+            <button type="button" id="btn-morse" class="btn">Morse Trainer</button>
             <button type="button" id="btn-shop" class="btn ghost">Upgrades</button>
           </div>
           <p class="panel-help">
             A / ← unwind spin · W / ↑ / E timed bounce pump · Space / click brace
           </p>
+        </div>
+
+        <div id="screen-morse" class="panel morse-panel" hidden>
+          <div class="morse-trainer">
+            <div class="morse-topbar">
+              <div class="morse-readout">
+                <p class="morse-label">Decoded</p>
+                <p id="morse-message" class="morse-message">—</p>
+                <p id="morse-status" class="morse-status">Hold Space or Key to send</p>
+              </div>
+              <div class="morse-controls morse-controls-secondary">
+                <button type="button" id="btn-morse-mute" class="btn" aria-pressed="false">Mute</button>
+                <button type="button" id="btn-morse-record" class="btn" aria-pressed="false">Record</button>
+                <button type="button" id="btn-morse-play" class="btn">Play</button>
+                <button type="button" id="btn-morse-clear" class="btn ghost">Clear</button>
+                <button type="button" id="btn-morse-back" class="btn">Back</button>
+              </div>
+            </div>
+            <div class="morse-dock">
+              <div id="morse-board" class="morse-board" aria-live="polite"></div>
+              <div class="morse-controls morse-controls-primary">
+                <button type="button" id="btn-morse-dah" class="btn morse-element">Dah −</button>
+                <button type="button" id="btn-morse-key" class="btn primary morse-paddle">Key</button>
+                <button type="button" id="btn-morse-dit" class="btn morse-element">Dit ·</button>
+              </div>
+              <p class="panel-help morse-help">
+                Hold <kbd>Space</kbd> / Key, or tap Dit / Dah · <kbd>M</kbd> mute · Esc back
+              </p>
+            </div>
+          </div>
         </div>
 
         <div id="screen-shop" class="panel" hidden>
@@ -74,6 +105,6 @@
         </div>
       </div>
     </div>
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/main.js?v=morse8"></script>
   </body>
 </html>
