@@ -9,6 +9,16 @@ Hosted as a static site on GitHub Pages.
 - **Live (after Pages is enabled):** `https://dwisnowski.github.io/boing-boing/`
 - **Local:** from the repo root run `python3 -m http.server 8080` and open `http://localhost:8080`
 
+## Routes
+
+Hash routes (static-hosting friendly):
+
+| Path | Page |
+| --- | --- |
+| `#/` | Home — choose Bounce Race or Morse Trainer |
+| `#/game` | Boing Boing downhill racer |
+| `#/morse` | Morse Code Trainer (mobile-friendly) |
+
 ## Controls
 
 | Action | Input |
@@ -46,7 +56,8 @@ Short presses are dits (right / circle branch); longer presses are dahs (left / 
 ```
 index.html
 src/
-  main.js       # menus, shop, race wiring, Morse screen
+  main.js       # route pages, game menus/shop/race, Morse boot
+  router.js     # hash SPA router (#/, #/game, #/morse)
   game.js       # race loop, chips, finish rules
   robot.js      # tumble / bounce / limb loss / tin-head physics
   terrain.js    # downhill polyline mountains
@@ -56,12 +67,12 @@ src/
   upgrades.js   # localStorage save + upgrade stats
   styles.css
   assets/
-    morse-trainer-card.jpg   # physical card reference
+    morse-card-reference.jpg   # tight crop reference for canvas card
   morse/
     tree.js     # dichotomous Morse alphabet tree
     audio.js    # Web Audio CW tone
     decoder.js  # dit/dah + letter/word gap timing
-    board.js    # SVG PCB chart + LED path
+    board.js    # canvas vector PCB card + LED glow
     trainer.js  # keying, decode, record/playback
 .github/workflows/deploy.yml
 ```
