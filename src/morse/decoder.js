@@ -11,12 +11,14 @@ import { BRANCH_DASH, BRANCH_DOT } from "./tree.js";
  * @returns {TimingConfig}
  */
 export function defaultTiming(overrides = {}) {
-  const unitMs = overrides.unitMs ?? 80;
+  const unitMs = overrides.unitMs ?? 90;
   return {
     unitMs,
-    ditThresholdMs: overrides.ditThresholdMs ?? unitMs * 2.2,
-    letterGapMs: overrides.letterGapMs ?? unitMs * 3.2,
-    wordGapMs: overrides.wordGapMs ?? unitMs * 7,
+    // Presses shorter than this are dits; longer are dahs.
+    ditThresholdMs: overrides.ditThresholdMs ?? unitMs * 2.4,
+    // Forgiving gaps so on-screen Key taps can form multi-element letters.
+    letterGapMs: overrides.letterGapMs ?? Math.max(520, unitMs * 5.5),
+    wordGapMs: overrides.wordGapMs ?? Math.max(1100, unitMs * 12),
   };
 }
 
