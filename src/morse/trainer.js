@@ -365,6 +365,11 @@ export function createTrainer(els) {
       return;
     }
     if (e.repeat) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      location.hash = "#/";
+      return;
+    }
     if (e.key === "." || e.key === ">") {
       e.preventDefault();
       sendElement(BRANCH_DOT);
@@ -398,7 +403,8 @@ export function createTrainer(els) {
     active = true;
     audio.ensureContext();
     renderMessage();
-    setStatus("Hold Space or Key to send");
+    setStatus("Hold Key or tap Dit / Dah");
+    board.resize?.();
   }
 
   function deactivate() {
@@ -418,7 +424,12 @@ export function createTrainer(els) {
     deactivate();
     window.removeEventListener("keydown", onKeyBoardDown);
     window.removeEventListener("keyup", onKeyBoardUp);
+    board.destroy?.();
     audio.dispose();
+  }
+
+  function resize() {
+    board.resize?.();
   }
 
   renderMessage();
@@ -428,5 +439,6 @@ export function createTrainer(els) {
     deactivate,
     destroy,
     clearAll,
+    resize,
   };
 }

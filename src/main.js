@@ -7,6 +7,11 @@ import {
   upgradeCost,
 } from "./upgrades.js";
 import { createTrainer } from "./morse/trainer.js";
+import { createRouter } from "./router.js";
+
+const pageHome = document.getElementById("page-home");
+const pageGame = document.getElementById("page-game");
+const pageMorse = document.getElementById("page-morse");
 
 const canvas = document.getElementById("game");
 const chipCountEl = document.getElementById("chip-count");
@@ -19,7 +24,6 @@ const integrityFill = document.getElementById("integrity-fill");
 const screenTitle = document.getElementById("screen-title");
 const screenShop = document.getElementById("screen-shop");
 const screenResults = document.getElementById("screen-results");
-const screenMorse = document.getElementById("screen-morse");
 const resultsTitle = document.getElementById("results-title");
 const resultsCopy = document.getElementById("results-copy");
 const shopList = document.getElementById("shop-list");
@@ -27,28 +31,114 @@ const shopChips = document.getElementById("shop-chips");
 
 const btnTournament = document.getElementById("btn-tournament");
 const btnQuick = document.getElementById("btn-quick");
-const btnMorse = document.getElementById("btn-morse");
 const btnShop = document.getElementById("btn-shop");
 const btnShopBack = document.getElementById("btn-shop-back");
 const btnNext = document.getElementById("btn-next");
 const btnRetry = document.getElementById("btn-retry");
 const btnResultsMenu = document.getElementById("btn-results-menu");
-const btnMorseBack = document.getElementById("btn-morse-back");
 
 const input = createInput(canvas);
 let save = loadSave();
 let race = null;
-let mode = "menu"; // menu | race | shop | results | morse
+let mode = "menu"; // menu | race | shop | results
 let activeLevelIndex = 0;
 let lastResult = null;
 /** @type {ReturnType<typeof createTrainer> | null} */
 let morseTrainer = null;
+let gameWired = false;
 
-refreshChips();
-resizeGameCanvas();
-window.addEventListener("resize", resizeGameCanvas);
-showScreen("title");
-drawIdlePreview();
+const router = createRouter({
+  "/": () => showPage("home"),
+  "/game": () => showPage("game"),
+  "/morse": () => showPage("morse"),
+});
+
+router.start();
+
+function showPage(name) {
+  pageHome.hidden = name !== "home";
+  pageGame.hidden = name !== "game";
+  pageMorse.hidden = name !== "morse";
+
+  if (name !== "morse" && morseTrainer) {
+    morseTrainer.deactivate();
+  }
+  if (name !== "game" && race) {
+    race.stop();
+    race = null;
+    mode = "menu";
+    hud.hidden = true;
+  }
+
+  if (name === "game") {
+    ensureGameWired();
+    refreshChips();
+    resizeGameCanvas();
+    if (mode !== "race") {
+      showScreen("title");
+      drawIdlePreview();
+    }
+  }
+
+  if (name === "morse") {
+    openMorse();
+  }
+
+  document.title =
+    name === "morse"
+      ? "Morse Trainer — Boing Boing"
+      : name === "game"
+        ? "Bounce Race — Boing Boing"
+        : "Boing Boing";
+}
+
+function ensureGameWired() {
+  if (gameWired) return;
+  gameWired = true;
+
+  window.addEventListener("resize", () => {
+    if (router.getPath() === "/game") resizeGameCanvas();
+  });
+
+  btnTournament.addEventListener("click", () => {
+    activeLevelIndex = Math.min(save.tournamentIndex, LEVELS.length - 1);
+    startRace(activeLevelIndex, "tournament");
+  });
+
+  btnQuick.addEventListener("click", () => {
+    activeLevelIndex = Math.floor(Math.random() * LEVELS.length);
+    startRace(activeLevelIndex, "quick");
+  });
+
+  btnShop.addEventListener("click", () => openShop());
+  btnShopBack.addEventListener("click", () => showScreen("title"));
+
+  btnNext.addEventListener("click", () => {
+    if (mode !== "results") return;
+    if (lastResult?.mode === "tournament" && lastResult.won) {
+      const next = Math.min(activeLevelIndex + 1, LEVELS.length - 1);
+      if (activeLevelIndex >= LEVELS.length - 1) {
+        showScreen("title");
+        return;
+      }
+      activeLevelIndex = next;
+      startRace(activeLevelIndex, "tournament");
+      return;
+    }
+    openShop();
+  });
+
+  btnRetry.addEventListener("click", () => {
+    if (mode !== "results" || !lastResult) return;
+    startRace(activeLevelIndex, lastResult.mode);
+  });
+
+  btnResultsMenu.addEventListener("click", () => {
+    if (race) race.stop();
+    lastResult = null;
+    showScreen("title");
+  });
+}
 
 function resizeGameCanvas() {
   const stage = canvas.parentElement;
@@ -62,59 +152,6 @@ function resizeGameCanvas() {
   }
   if (mode === "menu") drawIdlePreview();
 }
-
-btnTournament.addEventListener("click", () => {
-  activeLevelIndex = Math.min(save.tournamentIndex, LEVELS.length - 1);
-  startRace(activeLevelIndex, "tournament");
-});
-
-btnQuick.addEventListener("click", () => {
-  activeLevelIndex = Math.floor(Math.random() * LEVELS.length);
-  startRace(activeLevelIndex, "quick");
-});
-
-btnShop.addEventListener("click", () => openShop());
-btnShopBack.addEventListener("click", () => showScreen("title"));
-btnMorse.addEventListener("click", () => openMorse());
-btnMorseBack.addEventListener("click", () => {
-  if (morseTrainer) morseTrainer.deactivate();
-  showScreen("title");
-});
-
-window.addEventListener("keydown", (e) => {
-  if (mode !== "morse") return;
-  if (e.key === "Escape") {
-    e.preventDefault();
-    if (morseTrainer) morseTrainer.deactivate();
-    showScreen("title");
-  }
-});
-
-btnNext.addEventListener("click", () => {
-  if (mode !== "results") return;
-  if (lastResult?.mode === "tournament" && lastResult.won) {
-    const next = Math.min(activeLevelIndex + 1, LEVELS.length - 1);
-    if (activeLevelIndex >= LEVELS.length - 1) {
-      showScreen("title");
-      return;
-    }
-    activeLevelIndex = next;
-    startRace(activeLevelIndex, "tournament");
-    return;
-  }
-  openShop();
-});
-
-btnRetry.addEventListener("click", () => {
-  if (mode !== "results" || !lastResult) return;
-  startRace(activeLevelIndex, lastResult.mode);
-});
-
-btnResultsMenu.addEventListener("click", () => {
-  if (race) race.stop();
-  lastResult = null;
-  showScreen("title");
-});
 
 function startRace(levelIndex, raceMode) {
   if (race) race.stop();
@@ -163,7 +200,6 @@ function handleFinish(result, raceMode) {
     btnRetry.textContent = "Retry";
     btnResultsMenu.textContent = "Menu";
   } else {
-    // Did not reach the finish — only try again or quit
     btnNext.hidden = true;
     btnRetry.textContent = "Try Again";
     btnResultsMenu.textContent = "Quit";
@@ -182,16 +218,12 @@ function updateHud({ levelName, time, integrity, hint }) {
 function openShop() {
   mode = "shop";
   if (race) race.stop();
-  if (morseTrainer) morseTrainer.deactivate();
   hud.hidden = true;
   renderShop();
   showScreen("shop");
 }
 
 function openMorse() {
-  mode = "morse";
-  if (race) race.stop();
-  hud.hidden = true;
   if (!morseTrainer) {
     morseTrainer = createTrainer({
       boardMount: document.getElementById("morse-board"),
@@ -206,8 +238,11 @@ function openMorse() {
       clearBtn: document.getElementById("btn-morse-clear"),
     });
   }
-  showScreen("morse");
   morseTrainer.activate();
+  // Ensure canvas board sizes to the visible page
+  requestAnimationFrame(() => {
+    morseTrainer?.resize?.();
+  });
 }
 
 function renderShop() {
@@ -243,13 +278,9 @@ function renderShop() {
 }
 
 function showScreen(name) {
-  if (name !== "morse" && morseTrainer) {
-    morseTrainer.deactivate();
-  }
   screenTitle.hidden = name !== "title";
   screenShop.hidden = name !== "shop";
   screenResults.hidden = name !== "results";
-  screenMorse.hidden = name !== "morse";
   if (name === "title") {
     mode = "menu";
     hud.hidden = true;
@@ -269,7 +300,6 @@ function drawIdlePreview() {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Decorative slope
   ctx.fillStyle = "#2f5538";
   ctx.beginPath();
   ctx.moveTo(0, 160);
@@ -289,7 +319,6 @@ function drawIdlePreview() {
   }
   ctx.stroke();
 
-  // Idle robot
   ctx.save();
   ctx.translate(180, 210);
   ctx.rotate(-0.4);
