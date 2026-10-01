@@ -501,45 +501,45 @@ export function createBoard(mount) {
       }
 
       // Dah pads = red LEDs; dit pads = green LEDs (dim when idle, bright when lit)
-      ctx.lineWidth = Math.max(1.3, 1.55 * s);
+      ctx.lineWidth = Math.max(1.35, 1.6 * s);
       if (isDah) {
-        ctx.strokeStyle = on ? "#ff7a66" : "#c44a3a";
-        ctx.fillStyle = on ? "#5a100c" : "#4a1812";
+        ctx.strokeStyle = on ? "#ff8a78" : "#e05544";
+        ctx.fillStyle = on ? "#6e1410" : "#6a2018";
       } else {
-        ctx.strokeStyle = on ? "#66ff9a" : "#2e9a58";
-        ctx.fillStyle = on ? "#0a3a1c" : "#143a22";
+        ctx.strokeStyle = on ? "#78ffaa" : "#3dcc6e";
+        ctx.fillStyle = on ? "#0c4824" : "#1a5a32";
       }
 
       if (node.shape === "rect") {
-        const rw = 14 * s;
-        const rh = 9 * s;
-        drawRoundedRect(ctx, p.x - rw / 2, p.y - rh / 2, rw, rh, 2 * s);
+        const rw = 15 * s;
+        const rh = 10 * s;
+        drawRoundedRect(ctx, p.x - rw / 2, p.y - rh / 2, rw, rh, 2.2 * s);
         ctx.fill();
         ctx.stroke();
-        // LED lens highlight
+        // LED lens
         ctx.fillStyle = on
-          ? "rgba(255, 110, 90, 0.75)"
-          : "rgba(220, 80, 60, 0.45)";
+          ? "rgba(255, 130, 100, 0.9)"
+          : "rgba(255, 90, 70, 0.7)";
         drawRoundedRect(
           ctx,
-          p.x - rw * 0.28,
-          p.y - rh * 0.22,
-          rw * 0.56,
-          rh * 0.44,
+          p.x - rw * 0.3,
+          p.y - rh * 0.24,
+          rw * 0.6,
+          rh * 0.48,
           s
         );
         ctx.fill();
       } else {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 5.2 * s, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 5.6 * s, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        // LED lens highlight
+        // LED lens
         ctx.beginPath();
         ctx.fillStyle = on
-          ? "rgba(100, 255, 150, 0.8)"
-          : "rgba(70, 200, 110, 0.45)";
-        ctx.arc(p.x, p.y, 2.6 * s, 0, Math.PI * 2);
+          ? "rgba(120, 255, 160, 0.95)"
+          : "rgba(70, 220, 120, 0.75)";
+        ctx.arc(p.x, p.y, 3 * s, 0, Math.PI * 2);
         ctx.fill();
       }
 
