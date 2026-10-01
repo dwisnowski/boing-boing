@@ -198,6 +198,8 @@ function openMorse() {
       messageEl: document.getElementById("morse-message"),
       statusEl: document.getElementById("morse-status"),
       paddleBtn: document.getElementById("btn-morse-key"),
+      ditBtn: document.getElementById("btn-morse-dit"),
+      dahBtn: document.getElementById("btn-morse-dah"),
       muteBtn: document.getElementById("btn-morse-mute"),
       recordBtn: document.getElementById("btn-morse-record"),
       playBtn: document.getElementById("btn-morse-play"),

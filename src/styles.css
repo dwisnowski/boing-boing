@@ -533,6 +533,10 @@ body {
     grid-column: 1 / -1;
   }
 
+  .morse-controls .morse-element {
+    min-width: 0;
+  }
+
   .morse-board {
     max-height: min(48vh, 420px);
   }

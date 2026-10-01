@@ -19,6 +19,8 @@ import {
  *   messageEl: HTMLElement,
  *   statusEl?: HTMLElement | null,
  *   paddleBtn: HTMLElement,
+ *   ditBtn?: HTMLElement | null,
+ *   dahBtn?: HTMLElement | null,
  *   muteBtn: HTMLElement,
  *   recordBtn: HTMLElement,
  *   playBtn: HTMLElement,
@@ -36,6 +38,7 @@ export function createTrainer(els) {
   let active = false;
   let recording = false;
   let playing = false;
+  let elementBusy = false;
   /** @type {{ t: number, type: "down"|"up" }[]} */
   let recordBuffer = [];
   let recordStartedAt = 0;
@@ -243,6 +246,45 @@ export function createTrainer(els) {
     els.paddleBtn.classList.remove("is-down");
   }
 
+  /**
+   * Instant dit/dah (secondary input) — plays a short/long beep and advances the path.
+   * @param {"dash"|"dot"} branch
+   */
+  function sendElement(branch) {
+    if (!active || playing || decoder.isKeyDown()) return;
+    audio.ensureContext();
+    const timing = decoder.getTiming();
+    const durationMs =
+      branch === BRANCH_DOT
+        ? Math.max(50, timing.unitMs)
+        : Math.max(160, timing.unitMs * 3);
+
+    // Cancel pending letter gap, then treat as a completed element.
+    decoder.clearTimers();
+    audio.startTone();
+    const beepStarted = performance.now();
+    if (recording) {
+      recordBuffer.push({
+        t: beepStarted - recordStartedAt,
+        type: "down",
+      });
+    }
+
+    window.setTimeout(() => {
+      audio.stopTone();
+      if (recording) {
+        recordBuffer.push({
+          t: performance.now() - recordStartedAt,
+          type: "up",
+        });
+      }
+      applyBranch(branch);
+      // Re-arm letter/word gaps via a synthetic pending element
+      decoder.keyDown(performance.now() - durationMs);
+      decoder.keyUp(performance.now());
+    }, durationMs);
+  }
+
   function toggleMute() {
     const next = !audio.isMuted();
     audio.setMuted(next);
@@ -287,6 +329,19 @@ export function createTrainer(els) {
 
   bindPointer(els.paddleBtn);
 
+  if (els.ditBtn) {
+    els.ditBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      sendElement(BRANCH_DOT);
+    });
+  }
+  if (els.dahBtn) {
+    els.dahBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      sendElement(BRANCH_DASH);
+    });
+  }
+
   els.muteBtn.addEventListener("click", () => toggleMute());
   els.recordBtn.addEventListener("click", () => {
     if (playing) return;
@@ -303,7 +358,13 @@ export function createTrainer(els) {
       return;
     }
     if (e.repeat) return;
-    if (e.key === "m" || e.key === "M") {
+    if (e.key === "." || e.key === ">") {
+      e.preventDefault();
+      sendElement(BRANCH_DOT);
+    } else if (e.key === "-" || e.key === "_") {
+      e.preventDefault();
+      sendElement(BRANCH_DASH);
+    } else if (e.key === "m" || e.key === "M") {
       e.preventDefault();
       toggleMute();
     } else if (e.key === "r" || e.key === "R") {

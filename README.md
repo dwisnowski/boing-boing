@@ -31,7 +31,8 @@ Land **feet-down** on the slope to bounce and build speed. Holding stabilizes yo
 
 | Action | Input |
 | --- | --- |
-| Key (hold) | **Space** or on-screen **Key** |
+| Key (hold) | **Space** or on-screen **Key** (short = dit, long = dah) |
+| Dit / Dah (tap) | **.** / **-** or on-screen **Dit** / **Dah** |
 | Mute / silent LED mode | **M** or **Mute** |
 | Record / stop recording | **R** or **Record** |
 | Play / stop playback | **P** or **Play** |
