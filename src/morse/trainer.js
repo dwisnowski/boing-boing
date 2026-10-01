@@ -251,38 +251,45 @@ export function createTrainer(els) {
    * @param {"dash"|"dot"} branch
    */
   function sendElement(branch) {
-    if (!active || playing || decoder.isKeyDown()) return;
-    audio.ensureContext();
+    if (!active || playing || decoder.isKeyDown() || elementBusy) return;
     const timing = decoder.getTiming();
     const durationMs =
       branch === BRANCH_DOT
-        ? Math.max(50, timing.unitMs)
-        : Math.max(160, timing.unitMs * 3);
+        ? Math.max(55, timing.unitMs)
+        : Math.max(180, Math.round(timing.ditThresholdMs + timing.unitMs));
 
-    // Cancel pending letter gap, then treat as a completed element.
-    decoder.clearTimers();
-    audio.startTone();
-    const beepStarted = performance.now();
-    if (recording) {
-      recordBuffer.push({
-        t: beepStarted - recordStartedAt,
-        type: "down",
-      });
-    }
-
-    window.setTimeout(() => {
-      audio.stopTone();
+    elementBusy = true;
+    try {
+      audio.ensureContext();
+      decoder.clearTimers();
+      audio.startTone();
+      const beepStarted = performance.now();
       if (recording) {
         recordBuffer.push({
-          t: performance.now() - recordStartedAt,
-          type: "up",
+          t: beepStarted - recordStartedAt,
+          type: "down",
         });
       }
-      applyBranch(branch);
-      // Re-arm letter/word gaps via a synthetic pending element
-      decoder.keyDown(performance.now() - durationMs);
-      decoder.keyUp(performance.now());
-    }, durationMs);
+
+      window.setTimeout(() => {
+        try {
+          audio.stopTone();
+          const now = performance.now();
+          if (recording) {
+            recordBuffer.push({
+              t: now - recordStartedAt,
+              type: "up",
+            });
+          }
+          applyBranch(branch);
+          decoder.armGaps();
+        } finally {
+          elementBusy = false;
+        }
+      }, durationMs);
+    } catch {
+      elementBusy = false;
+    }
   }
 
   function toggleMute() {

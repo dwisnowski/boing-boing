@@ -107,6 +107,12 @@ export function createDecoder(opts) {
     }
   }
 
+  /** Arm letter/word gap timers after an externally applied element. */
+  function armGaps() {
+    hasPending = true;
+    scheduleGaps();
+  }
+
   function reset() {
     clearTimers();
     keyed = false;
@@ -127,6 +133,7 @@ export function createDecoder(opts) {
     keyDown,
     keyUp,
     forceCommitLetter,
+    armGaps,
     reset,
     getTiming,
     isKeyDown,
