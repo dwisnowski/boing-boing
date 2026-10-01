@@ -274,6 +274,229 @@ body {
   }
 }
 
+/* —— Morse Trainer (PCB card) —— */
+.morse-panel {
+  place-content: stretch center;
+  align-content: center;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(5, 5, 5, 0.72), rgba(8, 16, 20, 0.92));
+}
+
+.morse-trainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  width: min(420px, 100%);
+  margin: 0 auto;
+  min-height: 0;
+}
+
+.morse-board {
+  width: 100%;
+  max-height: min(58vh, 520px);
+  flex: 0 1 auto;
+}
+
+.morse-board-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(58vh, 520px);
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
+}
+
+.morse-plate {
+  fill: url(#morse-plate);
+  stroke: #d4af37;
+  stroke-width: 2.5;
+}
+
+.morse-plate-rim {
+  stroke: rgba(212, 175, 55, 0.35);
+  stroke-width: 1;
+}
+
+.morse-mount-hole {
+  fill: #0a0a0a;
+  stroke: #d4af37;
+  stroke-width: 1.5;
+}
+
+.morse-title {
+  fill: #d4af37;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.18em;
+}
+
+.morse-antenna line {
+  stroke: #d4af37;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.morse-antenna .morse-node-pad {
+  fill: #d4af37;
+  stroke: none;
+}
+
+.morse-trace {
+  fill: none;
+  stroke: #d4af37;
+  stroke-width: 1.35;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.85;
+  transition:
+    stroke 0.15s ease,
+    opacity 0.15s ease,
+    filter 0.15s ease;
+}
+
+.morse-trace.is-lit {
+  stroke: #ff4444;
+  opacity: 1;
+  filter: drop-shadow(0 0 3px #ff0000);
+}
+
+.morse-node-pad {
+  fill: #0a0a0a;
+  stroke: #d4af37;
+  stroke-width: 1.4;
+  transition: fill 0.12s ease, stroke 0.12s ease;
+}
+
+.morse-led {
+  fill: transparent;
+  stroke: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, fill 0.12s ease;
+  pointer-events: none;
+}
+
+.morse-node.is-lit .morse-led {
+  opacity: 1;
+  filter: url(#morse-led-glow);
+}
+
+.morse-node.led-red .morse-led {
+  fill: #ff0000;
+}
+
+.morse-node.led-green .morse-led {
+  fill: #00ff66;
+}
+
+.morse-node.is-lit.led-red .morse-node-pad {
+  stroke: #ff6666;
+}
+
+.morse-node.is-lit.led-green .morse-node-pad {
+  stroke: #66ff99;
+}
+
+.morse-letter {
+  fill: #e8d48b;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.morse-node.is-lit .morse-letter {
+  fill: #fff4c2;
+}
+
+.morse-speaker-core {
+  fill: #d4af37;
+}
+
+.morse-speaker-arc {
+  stroke: #d4af37;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.morse-board-error .morse-plate {
+  stroke: #ff4444;
+  animation: morse-shake 0.28s ease;
+}
+
+@keyframes morse-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+.morse-readout {
+  width: 100%;
+  text-align: center;
+}
+
+.morse-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #d4af37;
+  opacity: 0.8;
+}
+
+.morse-message {
+  margin: 0.2rem 0 0;
+  min-height: 1.5rem;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.1rem, 3.5vw, 1.45rem);
+  letter-spacing: 0.12em;
+  color: #f5e6a8;
+  word-break: break-word;
+}
+
+.morse-status {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  color: var(--sand);
+}
+
+.morse-controls {
+  width: 100%;
+}
+
+.morse-controls .btn {
+  min-width: 4.5rem;
+}
+
+.morse-paddle.is-down,
+.morse-controls .btn.is-active {
+  border-color: #d4af37;
+  background: linear-gradient(180deg, #5a4a1a, #3a3010);
+  color: #ffe9a0;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.morse-help kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 3px;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 0.78em;
+  color: #d4af37;
+}
+
 @media (max-width: 640px) {
   body {
     padding: 0.35rem;
@@ -294,5 +517,27 @@ body {
 
   .btn {
     width: 100%;
+  }
+
+  .morse-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .morse-controls .btn {
+    width: 100%;
+  }
+
+  .morse-controls .morse-paddle {
+    grid-column: 1 / -1;
+  }
+
+  .morse-board {
+    max-height: min(48vh, 420px);
+  }
+
+  .morse-board-svg {
+    max-height: min(48vh, 420px);
   }
 }

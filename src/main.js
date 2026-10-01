@@ -6,6 +6,7 @@ import {
   UPGRADE_DEFS,
   upgradeCost,
 } from "./upgrades.js";
+import { createTrainer } from "./morse/trainer.js";
 
 const canvas = document.getElementById("game");
 const chipCountEl = document.getElementById("chip-count");
@@ -18,6 +19,7 @@ const integrityFill = document.getElementById("integrity-fill");
 const screenTitle = document.getElementById("screen-title");
 const screenShop = document.getElementById("screen-shop");
 const screenResults = document.getElementById("screen-results");
+const screenMorse = document.getElementById("screen-morse");
 const resultsTitle = document.getElementById("results-title");
 const resultsCopy = document.getElementById("results-copy");
 const shopList = document.getElementById("shop-list");
@@ -25,18 +27,22 @@ const shopChips = document.getElementById("shop-chips");
 
 const btnTournament = document.getElementById("btn-tournament");
 const btnQuick = document.getElementById("btn-quick");
+const btnMorse = document.getElementById("btn-morse");
 const btnShop = document.getElementById("btn-shop");
 const btnShopBack = document.getElementById("btn-shop-back");
 const btnNext = document.getElementById("btn-next");
 const btnRetry = document.getElementById("btn-retry");
 const btnResultsMenu = document.getElementById("btn-results-menu");
+const btnMorseBack = document.getElementById("btn-morse-back");
 
 const input = createInput(canvas);
 let save = loadSave();
 let race = null;
-let mode = "menu"; // menu | race | shop | results
+let mode = "menu"; // menu | race | shop | results | morse
 let activeLevelIndex = 0;
 let lastResult = null;
+/** @type {ReturnType<typeof createTrainer> | null} */
+let morseTrainer = null;
 
 refreshChips();
 resizeGameCanvas();
@@ -69,6 +75,20 @@ btnQuick.addEventListener("click", () => {
 
 btnShop.addEventListener("click", () => openShop());
 btnShopBack.addEventListener("click", () => showScreen("title"));
+btnMorse.addEventListener("click", () => openMorse());
+btnMorseBack.addEventListener("click", () => {
+  if (morseTrainer) morseTrainer.deactivate();
+  showScreen("title");
+});
+
+window.addEventListener("keydown", (e) => {
+  if (mode !== "morse") return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (morseTrainer) morseTrainer.deactivate();
+    showScreen("title");
+  }
+});
 
 btnNext.addEventListener("click", () => {
   if (mode !== "results") return;
@@ -162,9 +182,30 @@ function updateHud({ levelName, time, integrity, hint }) {
 function openShop() {
   mode = "shop";
   if (race) race.stop();
+  if (morseTrainer) morseTrainer.deactivate();
   hud.hidden = true;
   renderShop();
   showScreen("shop");
+}
+
+function openMorse() {
+  mode = "morse";
+  if (race) race.stop();
+  hud.hidden = true;
+  if (!morseTrainer) {
+    morseTrainer = createTrainer({
+      boardMount: document.getElementById("morse-board"),
+      messageEl: document.getElementById("morse-message"),
+      statusEl: document.getElementById("morse-status"),
+      paddleBtn: document.getElementById("btn-morse-key"),
+      muteBtn: document.getElementById("btn-morse-mute"),
+      recordBtn: document.getElementById("btn-morse-record"),
+      playBtn: document.getElementById("btn-morse-play"),
+      clearBtn: document.getElementById("btn-morse-clear"),
+    });
+  }
+  showScreen("morse");
+  morseTrainer.activate();
 }
 
 function renderShop() {
@@ -200,9 +241,13 @@ function renderShop() {
 }
 
 function showScreen(name) {
+  if (name !== "morse" && morseTrainer) {
+    morseTrainer.deactivate();
+  }
   screenTitle.hidden = name !== "title";
   screenShop.hidden = name !== "shop";
   screenResults.hidden = name !== "results";
+  screenMorse.hidden = name !== "morse";
   if (name === "title") {
     mode = "menu";
     hud.hidden = true;
