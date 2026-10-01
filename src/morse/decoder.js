@@ -18,7 +18,7 @@ export function defaultTiming(overrides = {}) {
     ditThresholdMs: overrides.ditThresholdMs ?? unitMs * 2.4,
     // Forgiving gaps so on-screen Key taps can form multi-element letters.
     letterGapMs: overrides.letterGapMs ?? Math.max(520, unitMs * 5.5),
-    wordGapMs: overrides.wordGapMs ?? Math.max(1100, unitMs * 12),
+    wordGapMs: overrides.wordGapMs ?? Math.max(1800, unitMs * 18),
   };
 }
 
