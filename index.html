@@ -116,6 +116,7 @@
           <div class="morse-mode-toggle" role="group" aria-label="Trainer mode">
             <button type="button" class="morse-mode-btn" data-mode="free" aria-pressed="true">Free key</button>
             <button type="button" class="morse-mode-btn" data-mode="practice" aria-pressed="false">Practice</button>
+            <button type="button" class="morse-mode-btn" data-mode="listen" aria-pressed="false">Listen</button>
           </div>
           <h1 class="morse-page-title">Morse Trainer</h1>
         </header>
@@ -134,10 +135,28 @@
             <canvas class="mp-chart" aria-label="Words per minute over time with error markers"></canvas>
             <div class="mp-misses"></div>
           </div>
+          <div class="mp-listen-config mp-config" hidden></div>
           <div class="mp-actions">
             <button type="button" class="btn ghost mp-restart">Restart</button>
-            <span class="mp-restart-hint"><kbd>Tab</kbd> / <kbd>Enter</kbd> restart</span>
+            <button type="button" class="btn mp-listen" title="Hear and watch the phrase keyed (L)">Listen</button>
+            <button type="button" class="btn ghost mp-listen-toggle" aria-expanded="false" title="Listen settings">Speed…</button>
+            <span class="mp-restart-hint"><kbd>Tab</kbd> restart · <kbd>L</kbd> listen</span>
           </div>
+        </section>
+
+        <section id="morse-listen" class="morse-listen" aria-label="Listen and watch" hidden>
+          <div class="ml-config mp-config"></div>
+          <div class="ml-picker mp-config"></div>
+          <p class="ml-gloss mp-gloss"></p>
+          <div class="ml-phrase" aria-live="polite"></div>
+          <canvas class="ml-strip" aria-label="Rhythm strip: dits and dahs to scale"></canvas>
+          <p class="ml-info"></p>
+          <div class="ml-controls">
+            <button type="button" class="btn primary ml-play">Play</button>
+            <button type="button" class="btn ml-loop" aria-pressed="false">Loop</button>
+            <button type="button" class="btn ghost ml-keyit">Key it now</button>
+          </div>
+          <p class="ml-help"><kbd>Space</kbd> play / stop · <kbd>←</kbd> <kbd>→</kbd> phrase · <kbd>M</kbd> mute</p>
         </section>
 
         <div class="morse-readout">
@@ -168,6 +187,6 @@
       </div>
     </div>
 
-    <script type="module" src="./src/main.js?v=practice1"></script>
+    <script type="module" src="./src/main.js?v=listen1"></script>
   </body>
 </html>

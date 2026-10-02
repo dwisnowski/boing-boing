@@ -227,6 +227,7 @@ export function createBoard(mount) {
   /** @type {string[]} */
   let hintPath = [];
   let heightRatio = 0.56;
+  let segmentMs = SEGMENT_MS;
 
   function resize() {
     const parentW = mount.clientWidth || LOGICAL_W;
@@ -376,7 +377,7 @@ export function createBoard(mount) {
       return { drawnCount: pathIds.length, partial: 1 };
     }
     const elapsed = Math.max(0, now - traceAnim.startedAt);
-    const total = newSegs * SEGMENT_MS;
+    const total = newSegs * segmentMs;
     const t = easeOutCubic(elapsed / total);
     const f = t * newSegs;
     const full = Math.floor(f);
@@ -685,7 +686,7 @@ export function createBoard(mount) {
     if (!litPath.length) return true;
     const newSegs = Math.max(0, litPath.length - traceAnim.fromCount);
     if (newSegs === 0) return true;
-    return now - traceAnim.startedAt >= newSegs * SEGMENT_MS;
+    return now - traceAnim.startedAt >= newSegs * segmentMs;
   }
 
   function tick(now) {
@@ -749,6 +750,11 @@ export function createBoard(mount) {
   }
 
   /** Fraction of the viewport height the card may occupy. */
+  /** Duration of each trace segment's draw-in animation. */
+  function setSegmentMs(ms) {
+    segmentMs = Math.max(1, ms);
+  }
+
   function setHeightRatio(ratio) {
     heightRatio = ratio;
     resize();
@@ -766,6 +772,7 @@ export function createBoard(mount) {
     flashError,
     setHint,
     setHeightRatio,
+    setSegmentMs,
     resize,
     destroy() {
       ro.disconnect();

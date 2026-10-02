@@ -39,8 +39,9 @@ export function createTrainer(els) {
   let path = [];
   let message = "";
   let active = false;
-  /** @type {"free" | "practice"} */
+  /** @type {"free" | "practice" | "listen"} */
   let mode = "free";
+  let externalPlayback = false;
   let recording = false;
   let playing = false;
   let elementBusy = false;
@@ -236,7 +237,7 @@ export function createTrainer(els) {
   }
 
   function onKeyDown() {
-    if (!active || playing) return;
+    if (!active || playing || externalPlayback) return;
     if (decoder.isKeyDown()) return;
     audio.ensureContext();
     audio.startTone();
@@ -252,7 +253,7 @@ export function createTrainer(els) {
   }
 
   function onKeyUp() {
-    if (!active || playing) return;
+    if (!active || playing || externalPlayback) return;
     if (!decoder.isKeyDown()) return;
     audio.stopTone();
     decoder.keyUp();
@@ -270,7 +271,7 @@ export function createTrainer(els) {
    * @param {"dash"|"dot"} branch
    */
   function sendElement(branch) {
-    if (!active || playing || decoder.isKeyDown() || elementBusy) return;
+    if (!active || playing || externalPlayback || decoder.isKeyDown() || elementBusy) return;
     const timing = decoder.getTiming();
     const durationMs =
       branch === BRANCH_DOT
@@ -379,6 +380,17 @@ export function createTrainer(els) {
 
   function onKeyBoardDown(e) {
     if (!active) return;
+    if (mode === "listen") {
+      if (e.repeat) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        location.hash = "#/";
+      } else if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        toggleMute();
+      }
+      return;
+    }
     if (e.code === "Space" || e.key === " ") {
       e.preventDefault();
       if (!e.repeat) onKeyDown();
@@ -409,7 +421,7 @@ export function createTrainer(els) {
   }
 
   function onKeyBoardUp(e) {
-    if (!active) return;
+    if (!active || mode === "listen") return;
     if (e.code === "Space" || e.key === " ") {
       e.preventDefault();
       onKeyUp();
@@ -452,21 +464,48 @@ export function createTrainer(els) {
     board.resize?.();
   }
 
-  /** @param {"free" | "practice"} next */
+  const MODE_HEIGHT = { free: 0.56, practice: 0.44, listen: 0.42 };
+  const MODE_STATUS = {
+    free: "Hold Key or tap Dit / Dah",
+    practice: "Key the highlighted phrase",
+    listen: "Press Play to hear and watch the phrase",
+  };
+
+  /** @param {"free" | "practice" | "listen"} next */
   function setMode(next) {
     if (next === mode) return;
     mode = next;
     stopPlayback();
     if (recording) setRecording(false);
+    releaseKey();
     decoder.reset();
     current = MORSE_ROOT;
     path = [];
     message = "";
     board.clearPath();
     board.setHint([]);
-    board.setHeightRatio(mode === "practice" ? 0.44 : 0.56);
+    board.setHeightRatio(MODE_HEIGHT[mode]);
     renderMessage();
-    setStatus(mode === "practice" ? "Key the highlighted phrase" : "Hold Key or tap Dit / Dah");
+    setStatus(MODE_STATUS[mode]);
+  }
+
+  function releaseKey() {
+    if (decoder.isKeyDown()) {
+      audio.stopTone();
+      decoder.keyUp();
+    }
+    els.paddleBtn.classList.remove("is-down");
+  }
+
+  /** Block live keying while the phrase player owns the tone and the card. */
+  function setExternalPlayback(on) {
+    if (on && !externalPlayback) {
+      releaseKey();
+      decoder.reset();
+      current = MORSE_ROOT;
+      path = [];
+    }
+    externalPlayback = on;
   }
 
   renderMessage();
@@ -478,8 +517,17 @@ export function createTrainer(els) {
     clearAll,
     resize,
     setMode,
+    setExternalPlayback,
     setHint: (pathIds) => board.setHint(pathIds),
     flashError: () => board.flashError(),
     errorBeep: () => audio.beep(220, 140),
+    toneOn: () => {
+      audio.ensureContext();
+      audio.startTone();
+    },
+    toneOff: () => audio.stopTone(),
+    showPath: (ids, currentId) => board.setPath(ids, currentId),
+    clearPath: () => board.clearPath(),
+    setSegmentMs: (ms) => board.setSegmentMs(ms),
   };
 }

@@ -448,7 +448,7 @@ body[data-route="game"] {
   order: 3;
   flex-basis: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 999px;
   padding: 2px;
@@ -470,27 +470,38 @@ body[data-route="game"] {
   color: #ffe9a0;
 }
 
-/* Practice mode hides free-key-only chrome */
+/* Practice and Listen modes hide free-key-only chrome */
 .page-morse.is-practice .morse-label,
 .page-morse.is-practice .morse-message,
 .page-morse.is-practice #btn-morse-record,
 .page-morse.is-practice #btn-morse-play,
-.page-morse.is-practice #btn-morse-clear {
+.page-morse.is-practice #btn-morse-clear,
+.page-morse.is-listen .morse-label,
+.page-morse.is-listen .morse-message,
+.page-morse.is-listen #btn-morse-record,
+.page-morse.is-listen #btn-morse-play,
+.page-morse.is-listen #btn-morse-clear,
+.page-morse.is-listen .morse-controls-primary,
+.page-morse.is-listen .morse-help {
   display: none;
 }
 
-.page-morse.is-practice .morse-controls-secondary {
+.page-morse.is-practice .morse-controls-secondary,
+.page-morse.is-listen .morse-controls-secondary {
   grid-template-columns: auto;
   justify-content: end;
 }
 
 .morse-practice[hidden],
-.morse-practice [hidden] {
+.morse-practice [hidden],
+.morse-listen[hidden],
+.morse-listen [hidden] {
   display: none !important;
 }
 
 /* —— Morse practice (Monkeytype-style send drills) —— */
-.morse-practice {
+.morse-practice,
+.morse-listen {
   --mp-muted: rgba(214, 199, 161, 0.38);
   --mp-text: #f6f1e1;
   --mp-error: #ff5a4a;
@@ -785,12 +796,123 @@ body[data-route="game"] {
   color: var(--mp-muted);
 }
 
-.mp-restart-hint kbd {
+.mp-restart-hint kbd,
+.ml-help kbd {
   padding: 0 0.3rem;
   border: 1px solid rgba(212, 175, 55, 0.4);
   border-radius: 3px;
   font-family: inherit;
   color: #d4af37;
+}
+
+/* —— Listen and watch —— */
+.mp-actions .mp-restart-hint {
+  margin-left: auto;
+}
+
+.mp-listen,
+.mp-listen-toggle {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.mp-listen.is-active,
+.ml-play.is-active,
+.ml-loop[aria-pressed="true"] {
+  border-color: #d4af37;
+  background: linear-gradient(180deg, #5a4a1a, #3a3010);
+  color: #ffe9a0;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.ch-playing {
+  color: var(--mp-accent);
+  text-shadow: 0 0 10px rgba(255, 212, 90, 0.75);
+}
+
+.morse-practice.is-listening .mp-caret {
+  visibility: hidden;
+}
+
+.ml-phrase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  min-height: 3.2rem;
+}
+
+.ml-word {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.ml-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 1.1em;
+  transition: color 0.06s linear;
+}
+
+.ml-char {
+  font-size: clamp(1.25rem, 5.5vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--mp-muted);
+}
+
+.ml-pattern {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: rgba(140, 220, 255, 0.55);
+  white-space: nowrap;
+}
+
+.ml-cell.is-heard .ml-char {
+  color: var(--mp-text);
+}
+
+.ml-cell.is-playing .ml-char {
+  color: var(--mp-accent);
+  text-shadow: 0 0 10px rgba(255, 212, 90, 0.75);
+}
+
+.ml-cell.is-playing .ml-pattern {
+  color: rgba(140, 220, 255, 1);
+}
+
+.ml-strip {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.ml-info {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--mp-muted);
+}
+
+.ml-controls {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1.2fr;
+  gap: 0.4rem;
+}
+
+.ml-controls .btn {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.88rem;
+}
+
+.ml-help {
+  margin: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--mp-muted);
 }
 
 .morse-page-title {

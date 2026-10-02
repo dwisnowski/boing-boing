@@ -66,7 +66,22 @@ Switch the toggle under the title from **Free key** to **Practice** for Monkeyty
 | Stop on error | **off**, **letter** (wrong characters are rejected), **word** (a wrong word is cleared at the word gap to re-key) |
 | Feedback | **typo** indicator, error **sound**, **hint** (next character's pattern plus a ghost path on the card) |
 
+Press **Listen** (or **L**) to hear and watch the current phrase keyed before you send it; **Speed…** opens the listen settings (shared with Listen mode) and an **auto-listen** toggle that plays each new phrase once. Keying is blocked while it plays, and listening time does not count against your WPM.
+
 The timer starts on the first key press. Results show WPM (correct characters ÷ 5 per minute), accuracy, raw WPM, character breakdown, time, your personal best for that mode, a WPM-over-time chart with red ✕ marks at error seconds, and the characters you missed with their patterns. Press **Tab** / **Enter** or **Restart** for a new run. Settings, personal bests and missed words are saved in `localStorage`.
+
+## Morse Listen mode
+
+Pick **Listen** in the mode toggle to hear and see phrases keyed for you. The CW tone plays, the card lights each dit/dah path, the current character glows with its dit/dah pattern underneath, and a rhythm strip draws every element to scale (green dits, red dahs) with a moving playhead.
+
+| Setting | Options |
+| --- | --- |
+| Speed | 5, 10, 13, 15, 18, 20, 25, 30 WPM |
+| Timing | **standard** (PARIS 1-3-7 spacing) or **farnsworth** (characters at 18 or 20 WPM, gaps stretched to the chosen speed using the ARRL formula) |
+| Fist | **iambic** (machine-perfect), **bug** (crisp dits, long hand-made dahs), **straight** (human swing and jitter, repeatable per phrase) |
+| Cadence | **plain**, **ragchew** (grouped repeats, pauses before DE and around BT), **contest** (cut numbers 9→N, 0→T, 1→A, tight spacing), **sign-off** (adds the dit dit after SK) |
+
+Choose a category and step through phrases with **‹ prev** / **next ›** / **shuffle** (or **←** / **→**). **Space** plays and stops, **Loop** repeats the phrase, and **Key it now** jumps to Practice with the same category.
 
 ## Project layout
 
@@ -93,6 +108,9 @@ src/
     trainer.js  # keying, decode, record/playback, practice hooks
     drills.js   # CW shorthand / QSO phrase bank
     practice.js # Monkeytype-style send practice + results
+    sender.js   # listen timing: PARIS/Farnsworth, fists, cadences
+    player.js   # phrase playback (tone + card) + rhythm strip
+    listen.js   # Listen mode + shared listen settings
 .github/workflows/deploy.yml
 ```
 

@@ -4,6 +4,12 @@
  */
 
 import { CATEGORIES, DRILLS, tokenize } from "./drills.js";
+import {
+  describeSchedule,
+  loadListenSettings,
+  renderListenConfig,
+  saveListenSettings,
+} from "./listen.js";
 import { MORSE_CODES, nodeForToken, pathIdsTo, patternFor } from "./tree.js";
 
 const SETTINGS_KEY = "morse.practice.settings";
@@ -93,6 +99,7 @@ function el(tag, className, text) {
  *   setHint: (pathIds: string[]) => void,
  *   flashError: () => void,
  *   errorBeep: () => void,
+ *   player: ReturnType<typeof import("./player.js").createPlayer>,
  * }} opts
  */
 export function createPractice(opts) {
@@ -109,6 +116,10 @@ export function createPractice(opts) {
   const chartEl = /** @type {HTMLCanvasElement} */ (root.querySelector(".mp-chart"));
   const missesEl = /** @type {HTMLElement} */ (root.querySelector(".mp-misses"));
   const restartBtn = /** @type {HTMLElement} */ (root.querySelector(".mp-restart"));
+  const listenBtn = /** @type {HTMLElement} */ (root.querySelector(".mp-listen"));
+  const listenToggleBtn = /** @type {HTMLElement} */ (root.querySelector(".mp-listen-toggle"));
+  const listenConfigEl = /** @type {HTMLElement} */ (root.querySelector(".mp-listen-config"));
+  const { player } = opts;
 
   /** @type {PracticeSettings} */
   let settings = loadJson(SETTINGS_KEY, DEFAULT_SETTINGS);
@@ -116,6 +127,7 @@ export function createPractice(opts) {
   let missedWords = loadJson(MISSED_KEY, {});
   /** @type {Record<string, number>} */
   let personalBests = loadJson(PB_KEY, {});
+  let listenSettings = loadListenSettings();
 
   /** @type {"ready" | "running" | "done"} */
   let state = "ready";
@@ -131,6 +143,11 @@ export function createPractice(opts) {
 
   let startedAt = 0;
   let endedAt = 0;
+  /** Time spent listening during a run; excluded from WPM. */
+  let pausedMs = 0;
+  let pauseStart = 0;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let autoListenTimer = null;
   /** @type {ReturnType<typeof setInterval> | null} */
   let ticker = null;
   let stats = freshStats();
@@ -281,16 +298,97 @@ export function createPractice(opts) {
     wordIndex = 0;
     renderWords();
     updateHint();
+    scheduleAutoListen();
+  }
+
+  // —— Listen (hear and watch the current phrase) ——
+
+  function scheduleAutoListen() {
+    if (autoListenTimer) clearTimeout(autoListenTimer);
+    autoListenTimer = null;
+    if (!active || !listenSettings.autoListen || state === "done") return;
+    const phraseAt = phraseIndex;
+    autoListenTimer = setTimeout(() => {
+      autoListenTimer = null;
+      if (active && phraseIndex === phraseAt && state !== "done" && !player.isPlaying()) listen();
+    }, 450);
+  }
+
+  function highlightPlaying(span) {
+    for (const c of wordsEl.querySelectorAll(".ch-playing")) c.classList.remove("ch-playing");
+    if (!span) return;
+    wordsEl
+      .querySelector(`.ch[data-w="${span.wordIndex}"][data-c="${span.charIndex}"]`)
+      ?.classList.add("ch-playing");
+  }
+
+  function listen() {
+    if (!active || state === "done") return;
+    if (player.isPlaying()) {
+      player.stop();
+      return;
+    }
+    listenSettings = loadListenSettings();
+    if (state === "running") pauseStart = performance.now();
+    opts.setHint([]);
+    root.classList.add("is-listening");
+    listenBtn.textContent = "Stop";
+    listenBtn.classList.add("is-active");
+    const original = words.map((w) => w.text).join(" ");
+    const sched = player.play(
+      words.map((w) => w.target),
+      listenSettings,
+      {
+        onChar: (span) => highlightPlaying(span),
+        onDone: () => {
+          if (pauseStart) pausedMs += performance.now() - pauseStart;
+          pauseStart = 0;
+          root.classList.remove("is-listening");
+          listenBtn.textContent = "Listen";
+          listenBtn.classList.remove("is-active");
+          highlightPlaying(null);
+          renderLive();
+          updateHint();
+        },
+        shouldLoop: () => false,
+      }
+    );
+    const sent = sched.words.map((w) => w.join("")).join(" ");
+    liveEl.textContent =
+      `listening · ${describeSchedule(sched, listenSettings)}` +
+      (sent !== original ? ` · sent as ${sent.replace(/[<>]/g, "")}` : "");
+  }
+
+  function setListenSetting(key, value) {
+    listenSettings = { ...listenSettings, [key]: value };
+    saveListenSettings(listenSettings);
+    renderListenSettings();
+  }
+
+  function renderListenSettings() {
+    renderListenConfig(listenConfigEl, listenSettings, setListenSetting, [
+      group("Auto listen", [
+        pill(
+          "auto-listen",
+          listenSettings.autoListen,
+          () => setListenSetting("autoListen", !listenSettings.autoListen),
+          "Play each new phrase once before you key it"
+        ),
+      ]),
+    ]);
   }
 
   // —— Run lifecycle ——
 
   function restart() {
+    player.stop();
     stopTicker();
     state = "ready";
     stats = freshStats();
     startedAt = 0;
     endedAt = 0;
+    pausedMs = 0;
+    pauseStart = 0;
     queue = buildQueue();
     root.classList.remove("is-running", "is-done");
     resultsEl.hidden = true;
@@ -315,7 +413,9 @@ export function createPractice(opts) {
 
   function elapsedMs() {
     if (!startedAt) return 0;
-    return (endedAt || performance.now()) - startedAt;
+    const now = endedAt || performance.now();
+    const listening = pauseStart ? now - pauseStart : 0;
+    return now - startedAt - pausedMs - listening;
   }
 
   function wpmFor(chars, ms) {
@@ -332,8 +432,9 @@ export function createPractice(opts) {
   }
 
   function tick() {
-    if (state !== "running") return;
+    if (state !== "running" || pauseStart) return;
     const ms = elapsedMs();
+    if (ms < stats.samples.length * 1000) return;
     const second = stats.samples.length + 1;
     stats.samples.push({
       wpm: wpmFor(correctChars(), second * 1000),
@@ -349,8 +450,11 @@ export function createPractice(opts) {
 
   function finish() {
     if (state !== "running") return;
+    player.stop();
     endedAt = performance.now();
-    if (settings.mode === "time") endedAt = Math.min(endedAt, startedAt + settings.time * 1000);
+    if (settings.mode === "time") {
+      endedAt = Math.min(endedAt, startedAt + pausedMs + settings.time * 1000);
+    }
     state = "done";
     stopTicker();
     const lastSecond = Math.ceil(elapsedMs() / 1000);
@@ -509,8 +613,10 @@ export function createPractice(opts) {
     nextEl.textContent = `${displayToken(token)}  ${patternFor(token)}`;
   }
 
-  function charSpan(target, typed, status) {
+  function charSpan(target, typed, status, wi, ci) {
     const span = el("span", `ch ch-${status}`, displayToken(target));
+    span.dataset.w = String(wi);
+    span.dataset.c = String(ci);
     if (target.length > 1) span.classList.add("ch-prosign");
     if (status === "wrong" && settings.indicateTypo && typed) {
       span.appendChild(el("span", "ch-typo", displayToken(typed)));
@@ -536,7 +642,7 @@ export function createPractice(opts) {
         let status = "pending";
         if (typed != null) status = typed === target ? "correct" : "wrong";
         else if (word.done) status = "missed";
-        wordEl.appendChild(charSpan(target, typed, status));
+        wordEl.appendChild(charSpan(target, typed, status, wi, i));
       });
       for (let i = word.target.length; i < word.typed.length; i++) {
         const extra = el("span", "ch ch-extra", displayToken(word.typed[i]));
@@ -716,12 +822,24 @@ export function createPractice(opts) {
     restart();
     /** @type {HTMLElement} */ (e.currentTarget).blur();
   });
+  listenBtn.addEventListener("click", (e) => {
+    listen();
+    /** @type {HTMLElement} */ (e.currentTarget).blur();
+  });
+  listenToggleBtn.addEventListener("click", (e) => {
+    listenConfigEl.hidden = !listenConfigEl.hidden;
+    listenToggleBtn.setAttribute("aria-expanded", listenConfigEl.hidden ? "false" : "true");
+    /** @type {HTMLElement} */ (e.currentTarget).blur();
+  });
 
   function onKey(e) {
-    if (!active) return;
-    if ((e.key === "Tab" || e.key === "Enter") && !e.repeat) {
+    if (!active || e.repeat) return;
+    if (e.key === "Tab" || e.key === "Enter") {
       e.preventDefault();
       restart();
+    } else if (e.key === "l" || e.key === "L") {
+      e.preventDefault();
+      listen();
     }
   }
   window.addEventListener("keydown", onKey);
@@ -729,16 +847,28 @@ export function createPractice(opts) {
   function activate() {
     active = true;
     root.hidden = false;
+    listenSettings = loadListenSettings();
     renderConfig();
+    renderListenSettings();
     restart();
   }
 
   function deactivate() {
     active = false;
+    if (autoListenTimer) clearTimeout(autoListenTimer);
+    autoListenTimer = null;
+    player.stop();
     stopTicker();
     if (state === "running") state = "ready";
     opts.setHint([]);
     root.hidden = true;
+  }
+
+  /** Preselect a category before the next activate (e.g. from Listen mode). */
+  function setCategory(category) {
+    if (!CATEGORIES.some((c) => c.id === category)) return;
+    settings = { ...settings, category };
+    saveJson(SETTINGS_KEY, settings);
   }
 
   function resize() {
@@ -752,6 +882,7 @@ export function createPractice(opts) {
     deactivate,
     restart,
     resize,
+    setCategory,
     handleKeyDown,
     handleCommit,
     handleWordGap,
