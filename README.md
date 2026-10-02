@@ -83,6 +83,12 @@ Pick **Listen** in the mode toggle to hear and see phrases keyed for you. The CW
 
 Choose a category and step through phrases with **‹ prev** / **next ›** / **shuffle** (or **←** / **→**). **Space** plays and stops, **Loop** repeats the phrase, and **Key it now** jumps to Practice with the same category.
 
+## Morse layouts
+
+- **Phone / narrow** (under 900px wide): the compact single-column layout, with the card sized per mode.
+- **Laptop** (900px+ wide, 560px+ tall): two columns. The card and key controls stay pinned on the left, and the readout, Practice drills, or Listen player fill the right.
+- **Wide screen** (1440px+): adds a third column, a **code chart** of A–Z, 0–9, and prosigns. It highlights each character once you have keyed it, the character being played back, and (in Practice) the next character to send. Click any row to hear it; a rhythm strip at the top of the chart draws its dits and dahs to scale with a moving playhead. Clicks are ignored during a Practice run.
+
 ## Project layout
 
 ```
@@ -111,6 +117,7 @@ src/
     sender.js   # listen timing: PARIS/Farnsworth, fists, cadences
     player.js   # phrase playback (tone + card) + rhythm strip
     listen.js   # Listen mode + shared listen settings
+    reference.js # wide-screen code chart with live highlight
 .github/workflows/deploy.yml
 ```
 

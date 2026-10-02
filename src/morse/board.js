@@ -227,11 +227,12 @@ export function createBoard(mount) {
   /** @type {string[]} */
   let hintPath = [];
   let heightRatio = 0.56;
+  let maxHeightPx = 600;
   let segmentMs = SEGMENT_MS;
 
   function resize() {
     const parentW = mount.clientWidth || LOGICAL_W;
-    const maxH = Math.min(window.innerHeight * heightRatio, 600);
+    const maxH = Math.min(window.innerHeight * heightRatio, maxHeightPx);
     const scale = Math.min(parentW / LOGICAL_W, maxH / LOGICAL_H);
     cssW = Math.floor(LOGICAL_W * scale);
     cssH = Math.floor(LOGICAL_H * scale);
@@ -749,14 +750,15 @@ export function createBoard(mount) {
     paint();
   }
 
-  /** Fraction of the viewport height the card may occupy. */
   /** Duration of each trace segment's draw-in animation. */
   function setSegmentMs(ms) {
     segmentMs = Math.max(1, ms);
   }
 
-  function setHeightRatio(ratio) {
+  /** Fraction of the viewport height the card may occupy, capped at `maxPx`. */
+  function setHeightRatio(ratio, maxPx = 600) {
     heightRatio = ratio;
+    maxHeightPx = maxPx;
     resize();
   }
 

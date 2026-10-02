@@ -6,9 +6,10 @@ import {
   UPGRADE_DEFS,
   upgradeCost,
 } from "./upgrades.js";
-import { createListen } from "./morse/listen.js";
+import { createListen, describeSchedule, loadListenSettings } from "./morse/listen.js";
 import { createPlayer } from "./morse/player.js";
 import { createPractice } from "./morse/practice.js";
+import { createReference } from "./morse/reference.js";
 import { createTrainer } from "./morse/trainer.js";
 import { createRouter } from "./router.js";
 
@@ -52,6 +53,8 @@ let morseTrainer = null;
 let morsePractice = null;
 /** @type {ReturnType<typeof createListen> | null} */
 let morseListen = null;
+/** @type {ReturnType<typeof createReference> | null} */
+let morseReference = null;
 const MORSE_MODE_KEY = "morse.mode";
 const MORSE_MODES = ["free", "practice", "listen"];
 let gameWired = false;
@@ -248,7 +251,11 @@ function openMorse() {
       playBtn: document.getElementById("btn-morse-play"),
       clearBtn: document.getElementById("btn-morse-clear"),
       onKeyDown: () => morsePractice?.handleKeyDown(),
-      onCommit: (token) => morsePractice?.handleCommit(token) ?? true,
+      onCommit: (token) => {
+        const accepted = morsePractice?.handleCommit(token) ?? true;
+        if (accepted !== false) morseReference?.highlight(token.replace(/[<>]/g, ""), "keyed");
+        return accepted;
+      },
       onWordGap: () => morsePractice?.handleWordGap(),
     });
     const trainer = morseTrainer;
@@ -259,6 +266,19 @@ function openMorse() {
       clearPath: () => trainer.clearPath(),
       setSegmentMs: (ms) => trainer.setSegmentMs(ms),
       setLocked: (locked) => trainer.setExternalPlayback(locked),
+      onChar: (span) =>
+        morseReference?.highlight(span ? span.token.replace(/[<>]/g, "") : null, "playing"),
+    });
+    morseReference = createReference(document.getElementById("morse-reference"), {
+      onPick: (token) => {
+        if (morsePractice?.isRunning()) return;
+        const settings = loadListenSettings();
+        player.play([[token]], settings, {
+          onStart: (s) => morseReference?.showStrip(token, s, describeSchedule(s, settings)),
+          onFrame: (ms) => morseReference?.drawStrip(ms),
+          onDone: () => morseReference?.endStrip(),
+        });
+      },
     });
     morsePractice = createPractice({
       root: document.getElementById("morse-practice"),
@@ -266,6 +286,8 @@ function openMorse() {
       flashError: () => trainer.flashError(),
       errorBeep: () => trainer.errorBeep(),
       player,
+      setExpected: (token) =>
+        morseReference?.highlight(token ? token.replace(/[<>]/g, "") : null, "expected"),
     });
     morseListen = createListen({
       root: document.getElementById("morse-listen"),
@@ -310,6 +332,7 @@ function setMorseMode(next) {
   }
   if (next !== "practice") morsePractice.deactivate();
   if (next !== "listen") morseListen.deactivate();
+  morseReference?.highlight(null, "keyed");
   morseTrainer.setMode(next);
   if (next === "practice") morsePractice.activate();
   if (next === "listen") morseListen.activate();

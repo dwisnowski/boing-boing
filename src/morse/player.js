@@ -41,6 +41,7 @@ function prefixPath(token, elementCount) {
  *   clearPath: () => void,
  *   setSegmentMs: (ms: number) => void,
  *   setLocked: (locked: boolean) => void,
+ *   onChar?: (span: CharSpan | null) => void,
  * }} io
  */
 export function createPlayer(io) {
@@ -91,13 +92,20 @@ export function createPlayer(io) {
     }
 
     sched.chars.forEach((span, i) => {
-      at(span.start, () => playing && handlers.onChar?.(span));
+      at(span.start, () => {
+        if (!playing) return;
+        io.onChar?.(span);
+        handlers.onChar?.(span);
+      });
       const next = sched.chars[i + 1];
       const hold = next ? Math.min(350, (next.start - span.end) * 0.7) : 350;
       at(span.end + hold, () => {
         if (!playing) return;
         io.clearPath();
-        if (!next || next.wordIndex !== span.wordIndex) handlers.onChar?.(null);
+        if (!next || next.wordIndex !== span.wordIndex) {
+          io.onChar?.(null);
+          handlers.onChar?.(null);
+        }
       });
     });
 
@@ -122,6 +130,7 @@ export function createPlayer(io) {
     io.clearPath();
     io.setSegmentMs(DEFAULT_SEGMENT_MS);
     io.setLocked(false);
+    io.onChar?.(null);
     if (wasPlaying) {
       handlers.onChar?.(null);
       handlers.onDone?.(stopped);
@@ -160,7 +169,7 @@ export function createPlayer(io) {
  * Draw the phrase timeline: dits green, dahs red, gaps to scale, playhead gold.
  * @param {HTMLCanvasElement} canvas
  * @param {Schedule | null} schedule
- * @param {number} playheadMs negative to hide the playhead
+ * @param {number} playheadMs negative to hide the playhead; Infinity draws it fully lit with no playhead
  */
 export function drawRhythmStrip(canvas, schedule, playheadMs = -1) {
   const ctx = canvas.getContext("2d");
@@ -230,7 +239,7 @@ export function drawRhythmStrip(canvas, schedule, playheadMs = -1) {
     }
   }
 
-  if (playheadMs >= 0) {
+  if (playheadMs >= 0 && Number.isFinite(playheadMs)) {
     const x = xFor(Math.min(playheadMs, schedule.totalMs));
     ctx.strokeStyle = "#ffd45a";
     ctx.lineWidth = 2;

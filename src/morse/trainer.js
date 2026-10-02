@@ -28,6 +28,7 @@ import {
  *   onKeyDown?: () => void,
  *   onCommit?: (token: string) => boolean,
  *   onWordGap?: () => void,
+ *   onNode?: (id: string | null) => void,
  * }} els
  */
 export function createTrainer(els) {
@@ -71,19 +72,25 @@ export function createTrainer(els) {
     },
   });
 
+  function clearLitPath() {
+    board.clearPath();
+    els.onNode?.(null);
+  }
+
   function applyBranch(branch) {
     const next = step(current, branch);
     if (!next) {
       board.flashError();
       current = MORSE_ROOT;
       path = [];
-      board.clearPath();
+      clearLitPath();
       setStatus("Invalid path — reset");
       return false;
     }
     current = next;
     path = pathIdsTo(next);
     board.setPath(path, next.id);
+    els.onNode?.(next.id);
     setStatus(next.label ? `${next.label} · ${pathSymbol()}` : pathSymbol());
     return true;
   }
@@ -123,7 +130,7 @@ export function createTrainer(els) {
     path = [];
     window.setTimeout(() => {
       if (path.length === 0 && current === MORSE_ROOT) {
-        board.clearPath();
+        clearLitPath();
       }
     }, holdMs);
   }
@@ -163,7 +170,7 @@ export function createTrainer(els) {
       decoder.reset();
       current = MORSE_ROOT;
       path = [];
-      board.clearPath();
+      clearLitPath();
       els.playBtn.classList.remove("is-active");
       els.playBtn.textContent = "Play";
     }
@@ -184,7 +191,7 @@ export function createTrainer(els) {
     decoder.forceCommitLetter();
     current = MORSE_ROOT;
     path = [];
-    board.clearPath();
+    clearLitPath();
 
     playing = true;
     els.playBtn.classList.add("is-active");
@@ -334,7 +341,7 @@ export function createTrainer(els) {
     els.recordBtn.classList.remove("is-active");
     els.recordBtn.textContent = "Record";
     els.recordBtn.setAttribute("aria-pressed", "false");
-    board.clearPath();
+    clearLitPath();
     renderMessage();
     setStatus("Cleared");
   }
@@ -456,6 +463,7 @@ export function createTrainer(els) {
     deactivate();
     window.removeEventListener("keydown", onKeyBoardDown);
     window.removeEventListener("keyup", onKeyBoardUp);
+    wideQuery.removeEventListener("change", applyCardSize);
     board.destroy?.();
     audio.dispose();
   }
@@ -465,6 +473,15 @@ export function createTrainer(els) {
   }
 
   const MODE_HEIGHT = { free: 0.56, practice: 0.44, listen: 0.42 };
+  const WIDE_HEIGHT = 0.78;
+  const WIDE_MAX_PX = 940;
+  const wideQuery = window.matchMedia("(min-width: 900px) and (min-height: 560px)");
+
+  function applyCardSize() {
+    if (wideQuery.matches) board.setHeightRatio(WIDE_HEIGHT, WIDE_MAX_PX);
+    else board.setHeightRatio(MODE_HEIGHT[mode]);
+  }
+  wideQuery.addEventListener("change", applyCardSize);
   const MODE_STATUS = {
     free: "Hold Key or tap Dit / Dah",
     practice: "Key the highlighted phrase",
@@ -482,9 +499,9 @@ export function createTrainer(els) {
     current = MORSE_ROOT;
     path = [];
     message = "";
-    board.clearPath();
+    clearLitPath();
     board.setHint([]);
-    board.setHeightRatio(MODE_HEIGHT[mode]);
+    applyCardSize();
     renderMessage();
     setStatus(MODE_STATUS[mode]);
   }
@@ -509,6 +526,7 @@ export function createTrainer(els) {
   }
 
   renderMessage();
+  applyCardSize();
 
   return {
     activate,

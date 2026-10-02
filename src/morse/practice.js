@@ -100,6 +100,7 @@ function el(tag, className, text) {
  *   flashError: () => void,
  *   errorBeep: () => void,
  *   player: ReturnType<typeof import("./player.js").createPlayer>,
+ *   setExpected?: (token: string | null) => void,
  * }} opts
  */
 export function createPractice(opts) {
@@ -469,6 +470,7 @@ export function createPractice(opts) {
     }
     saveJson(MISSED_KEY, missedWords);
     opts.setHint([]);
+    opts.setExpected?.(null);
     root.classList.remove("is-running");
     root.classList.add("is-done");
     testEl.hidden = true;
@@ -601,6 +603,7 @@ export function createPractice(opts) {
 
   function updateHint() {
     const token = expectedToken();
+    opts.setExpected?.(state === "done" ? null : token);
     if (!settings.hint || !token || state === "done") {
       opts.setHint([]);
       nextEl.textContent = "";
@@ -861,6 +864,7 @@ export function createPractice(opts) {
     stopTicker();
     if (state === "running") state = "ready";
     opts.setHint([]);
+    opts.setExpected?.(null);
     root.hidden = true;
   }
 
@@ -887,5 +891,6 @@ export function createPractice(opts) {
     handleCommit,
     handleWordGap,
     isActive: () => active,
+    isRunning: () => active && state === "running",
   };
 }

@@ -121,55 +121,57 @@
           <h1 class="morse-page-title">Morse Trainer</h1>
         </header>
 
-        <section id="morse-practice" class="morse-practice" aria-label="Send practice" hidden>
-          <div class="mp-config"></div>
-          <p class="mp-live" aria-live="polite"></p>
-          <div class="mp-test">
-            <p class="mp-gloss"></p>
-            <div class="mp-words" aria-live="polite"></div>
-            <p class="mp-next" hidden></p>
-            <p class="mp-upnext"></p>
-          </div>
-          <div class="mp-results" hidden>
-            <div class="mp-stats"></div>
-            <canvas class="mp-chart" aria-label="Words per minute over time with error markers"></canvas>
-            <div class="mp-misses"></div>
-          </div>
-          <div class="mp-listen-config mp-config" hidden></div>
-          <div class="mp-actions">
-            <button type="button" class="btn ghost mp-restart">Restart</button>
-            <button type="button" class="btn mp-listen" title="Hear and watch the phrase keyed (L)">Listen</button>
-            <button type="button" class="btn ghost mp-listen-toggle" aria-expanded="false" title="Listen settings">Speed…</button>
-            <span class="mp-restart-hint"><kbd>Tab</kbd> restart · <kbd>L</kbd> listen</span>
-          </div>
-        </section>
+        <div class="morse-panel">
+          <section id="morse-practice" class="morse-practice" aria-label="Send practice" hidden>
+            <div class="mp-config"></div>
+            <p class="mp-live" aria-live="polite"></p>
+            <div class="mp-test">
+              <p class="mp-gloss"></p>
+              <div class="mp-words" aria-live="polite"></div>
+              <p class="mp-next" hidden></p>
+              <p class="mp-upnext"></p>
+            </div>
+            <div class="mp-results" hidden>
+              <div class="mp-stats"></div>
+              <canvas class="mp-chart" aria-label="Words per minute over time with error markers"></canvas>
+              <div class="mp-misses"></div>
+            </div>
+            <div class="mp-listen-config mp-config" hidden></div>
+            <div class="mp-actions">
+              <button type="button" class="btn ghost mp-restart">Restart</button>
+              <button type="button" class="btn mp-listen" title="Hear and watch the phrase keyed (L)">Listen</button>
+              <button type="button" class="btn ghost mp-listen-toggle" aria-expanded="false" title="Listen settings">Speed…</button>
+              <span class="mp-restart-hint"><kbd>Tab</kbd> restart · <kbd>L</kbd> listen</span>
+            </div>
+          </section>
 
-        <section id="morse-listen" class="morse-listen" aria-label="Listen and watch" hidden>
-          <div class="ml-config mp-config"></div>
-          <div class="ml-picker mp-config"></div>
-          <p class="ml-gloss mp-gloss"></p>
-          <div class="ml-phrase" aria-live="polite"></div>
-          <canvas class="ml-strip" aria-label="Rhythm strip: dits and dahs to scale"></canvas>
-          <p class="ml-info"></p>
-          <div class="ml-controls">
-            <button type="button" class="btn primary ml-play">Play</button>
-            <button type="button" class="btn ml-loop" aria-pressed="false">Loop</button>
-            <button type="button" class="btn ghost ml-keyit">Key it now</button>
+          <section id="morse-listen" class="morse-listen" aria-label="Listen and watch" hidden>
+            <div class="ml-config mp-config"></div>
+            <div class="ml-picker mp-config"></div>
+            <p class="ml-gloss mp-gloss"></p>
+            <div class="ml-phrase" aria-live="polite"></div>
+            <canvas class="ml-strip" aria-label="Rhythm strip: dits and dahs to scale"></canvas>
+            <p class="ml-info"></p>
+            <div class="ml-controls">
+              <button type="button" class="btn primary ml-play">Play</button>
+              <button type="button" class="btn ml-loop" aria-pressed="false">Loop</button>
+              <button type="button" class="btn ghost ml-keyit">Key it now</button>
+            </div>
+            <p class="ml-help"><kbd>Space</kbd> play / stop · <kbd>←</kbd> <kbd>→</kbd> phrase · <kbd>M</kbd> mute</p>
+          </section>
+
+          <div class="morse-readout">
+            <p class="morse-label">Decoded</p>
+            <p id="morse-message" class="morse-message">—</p>
+            <p id="morse-status" class="morse-status">Hold Key or tap Dit / Dah</p>
           </div>
-          <p class="ml-help"><kbd>Space</kbd> play / stop · <kbd>←</kbd> <kbd>→</kbd> phrase · <kbd>M</kbd> mute</p>
-        </section>
 
-        <div class="morse-readout">
-          <p class="morse-label">Decoded</p>
-          <p id="morse-message" class="morse-message">—</p>
-          <p id="morse-status" class="morse-status">Hold Key or tap Dit / Dah</p>
-        </div>
-
-        <div class="morse-controls morse-controls-secondary">
-          <button type="button" id="btn-morse-mute" class="btn" aria-pressed="false">Mute</button>
-          <button type="button" id="btn-morse-record" class="btn" aria-pressed="false">Record</button>
-          <button type="button" id="btn-morse-play" class="btn">Play</button>
-          <button type="button" id="btn-morse-clear" class="btn ghost">Clear</button>
+          <div class="morse-controls morse-controls-secondary">
+            <button type="button" id="btn-morse-mute" class="btn" aria-pressed="false">Mute</button>
+            <button type="button" id="btn-morse-record" class="btn" aria-pressed="false">Record</button>
+            <button type="button" id="btn-morse-play" class="btn">Play</button>
+            <button type="button" id="btn-morse-clear" class="btn ghost">Clear</button>
+          </div>
         </div>
 
         <div class="morse-dock">
@@ -184,9 +186,11 @@
             <kbd>M</kbd> mute
           </p>
         </div>
+
+        <aside id="morse-reference" class="morse-reference" aria-label="Code chart"></aside>
       </div>
     </div>
 
-    <script type="module" src="./src/main.js?v=listen1"></script>
+    <script type="module" src="./src/main.js?v=layout2"></script>
   </body>
 </html>
