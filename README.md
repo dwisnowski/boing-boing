@@ -1,12 +1,14 @@
 # Boing Boing
 
+[![Play on GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?style=for-the-badge&logo=github)](https://dwisnowski.github.io/boing-boing/)
+
 A physics downhill racer inspired by **Kamikaze Robots**. Launch a spring-footed robot down jagged mountains, stick flat landings for huge bounces, and limp across the finish — even as a tin head if you have to.
 
 Hosted as a static site on GitHub Pages.
 
 ## Play
 
-- **Live (after Pages is enabled):** `https://dwisnowski.github.io/boing-boing/`
+- **Live (after Pages is enabled):** [dwisnowski.github.io/boing-boing](https://dwisnowski.github.io/boing-boing/)
 - **Local:** from the repo root run `python3 -m http.server 8080` and open `http://localhost:8080`
 
 ## Routes
@@ -36,6 +38,20 @@ Land **feet-down** on the slope to bounce and build speed. Holding stabilizes yo
 - **Quick Race** — one random mountain
 - **Morse Trainer** — interactive dichotomous Morse chart (Trainer Card Pro style): hold **Space** or **Key** for dits/dahs, watch the LED path light up, hear CW beeps, mute for silent practice, use Record / Play to audit timing, and switch to **Practice** for Monkeytype-style CW shorthand drills
 - **Upgrades** — spend microchips on Stamina, Spin, Jump Springs, and Explosion
+
+## Morse Trainer screenshots
+
+**Free key** — key on the dichotomous chart and watch the decoded message build up.
+
+![Morse Trainer in Free key mode](docs/screenshots/morse-free-key.png)
+
+**Practice** — send CW shorthand drills with per-character feedback and a hint path on the card.
+
+![Morse Trainer in Practice mode](docs/screenshots/morse-practice.png)
+
+**Listen** — hear a phrase keyed while the card lights each path and the rhythm strip tracks the playhead.
+
+![Morse Trainer in Listen mode](docs/screenshots/morse-listen.png)
 
 ## Morse Trainer controls
 
