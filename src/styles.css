@@ -437,10 +437,360 @@ body[data-route="game"] {
 
 .morse-page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.4rem 0.75rem;
   flex: 0 0 auto;
+}
+
+.morse-mode-toggle {
+  order: 3;
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.morse-mode-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  color: var(--sand);
+  font: 600 0.8rem "IBM Plex Sans", sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.morse-mode-btn[aria-pressed="true"] {
+  background: linear-gradient(180deg, #5a4a1a, #3a3010);
+  color: #ffe9a0;
+}
+
+/* Practice mode hides free-key-only chrome */
+.page-morse.is-practice .morse-label,
+.page-morse.is-practice .morse-message,
+.page-morse.is-practice #btn-morse-record,
+.page-morse.is-practice #btn-morse-play,
+.page-morse.is-practice #btn-morse-clear {
+  display: none;
+}
+
+.page-morse.is-practice .morse-controls-secondary {
+  grid-template-columns: auto;
+  justify-content: end;
+}
+
+.morse-practice[hidden],
+.morse-practice [hidden] {
+  display: none !important;
+}
+
+/* —— Morse practice (Monkeytype-style send drills) —— */
+.morse-practice {
+  --mp-muted: rgba(214, 199, 161, 0.38);
+  --mp-text: #f6f1e1;
+  --mp-error: #ff5a4a;
+  --mp-accent: #ffd45a;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+.mp-config {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.6rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  transition: opacity 0.25s ease;
+}
+
+.morse-practice.is-running .mp-config {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.mp-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.mp-group-label {
+  font-size: 0.66rem;
+  color: var(--mp-muted);
+  margin-right: 0.15rem;
+}
+
+.mp-pill {
+  border: 0;
+  background: transparent;
+  color: var(--mp-muted);
+  font: 600 0.72rem "IBM Plex Sans", sans-serif;
+  padding: 0.18rem 0.32rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mp-pill:hover,
+.mp-pill:focus-visible {
+  color: var(--mp-text);
+}
+
+.mp-pill[aria-pressed="true"] {
+  color: var(--mp-accent);
+}
+
+.mp-live {
+  margin: 0;
+  min-height: 1.1rem;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--mp-accent);
+}
+
+.mp-test {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mp-gloss {
+  margin: 0;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: rgba(214, 199, 161, 0.7);
+}
+
+.mp-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.85rem;
+  min-height: 2.4rem;
+  font-size: clamp(1.35rem, 6vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+.mp-word {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.mp-word.is-errored {
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 90, 74, 0.6);
+  text-underline-offset: 0.3em;
+}
+
+.ch {
+  position: relative;
+  transition: color 0.08s linear;
+}
+
+.ch-pending {
+  color: var(--mp-muted);
+}
+
+.ch-correct {
+  color: var(--mp-text);
+}
+
+.ch-wrong {
+  color: var(--mp-error);
+}
+
+.ch-extra {
+  color: rgba(255, 90, 74, 0.65);
+}
+
+.ch-missed {
+  color: var(--mp-muted);
+  text-decoration: underline;
+  text-decoration-color: var(--mp-error);
+  text-underline-offset: 0.3em;
+}
+
+.ch-prosign {
+  text-decoration: overline;
+  text-decoration-thickness: 2px;
+}
+
+.ch-missed.ch-prosign {
+  text-decoration: overline underline;
+}
+
+.ch-typo {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, -0.2em);
+  font-size: 0.48em;
+  letter-spacing: 0;
+  color: var(--mp-error);
+  opacity: 0.9;
+}
+
+.mp-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin: 0 1px;
+  align-self: center;
+  background: var(--mp-accent);
+  animation: mp-caret-blink 1s step-end infinite;
+}
+
+.morse-practice.is-running .mp-caret {
+  animation: none;
+}
+
+@keyframes mp-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.mp-next {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(140, 220, 255, 0.9);
+  white-space: pre;
+}
+
+.mp-upnext {
+  margin: 0;
+  min-height: 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--mp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mp-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem 0.6rem;
+}
+
+.mp-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mp-stat-big {
+  grid-column: span 2;
+}
+
+.mp-stat-label {
+  font-size: 0.7rem;
+  color: var(--mp-muted);
+}
+
+.mp-stat-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--mp-accent);
+  white-space: nowrap;
+}
+
+.mp-stat-big .mp-stat-value {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.mp-chart {
+  display: block;
+  width: 100%;
+  height: 110px;
+}
+
+.mp-misses-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  color: var(--mp-muted);
+}
+
+.mp-miss-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.mp-miss {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(255, 90, 74, 0.35);
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+.mp-miss-char {
+  font-weight: 700;
+  color: var(--mp-text);
+}
+
+.mp-miss-pattern {
+  color: rgba(140, 220, 255, 0.85);
+  letter-spacing: 0.08em;
+}
+
+.mp-miss-count {
+  color: var(--mp-error);
+}
+
+.mp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mp-restart {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+}
+
+.mp-restart-hint {
+  font-size: 0.7rem;
+  color: var(--mp-muted);
+}
+
+.mp-restart-hint kbd {
+  padding: 0 0.3rem;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 3px;
+  font-family: inherit;
+  color: #d4af37;
 }
 
 .morse-page-title {
@@ -466,7 +816,7 @@ body[data-route="game"] {
 
 .morse-board {
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   display: flex;
   justify-content: center;
   flex: 0 1 auto;

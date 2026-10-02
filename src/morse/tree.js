@@ -2,6 +2,7 @@
  * Dichotomous Morse tree matching the Trainer Card Pro layout.
  * Left branch = dash, right branch = dit (dot).
  * Dash nodes use rectangular pads; dit nodes use circular pads.
+ * Intermediate codes with no character use small "stub" pads.
  */
 
 export const BRANCH_DASH = "dash";
@@ -11,183 +12,111 @@ export const BRANCH_DOT = "dot";
  * @typedef {{
  *   id: string,
  *   letter: string | null,
- *   shape: "rect" | "circle" | "root",
+ *   label: string | null,
+ *   code: string,
+ *   kind: "dash" | "dot" | null,
+ *   shape: "rect" | "circle" | "stub" | "root",
  *   dash: MorseNode | null,
  *   dot: MorseNode | null,
  * }} MorseNode
  */
 
-/** @type {MorseNode} */
-export const MORSE_ROOT = {
-  id: "root",
-  letter: null,
-  shape: "root",
-  dash: {
-    id: "T",
-    letter: "T",
-    shape: "rect",
-    dash: {
-      id: "M",
-      letter: "M",
-      shape: "rect",
-      dash: {
-        id: "O",
-        letter: "O",
-        shape: "rect",
-        dash: null,
-        dot: null,
-      },
-      dot: {
-        id: "G",
-        letter: "G",
-        shape: "circle",
-        dash: {
-          id: "Q",
-          letter: "Q",
-          shape: "rect",
-          dash: null,
-          dot: null,
-        },
-        dot: {
-          id: "Z",
-          letter: "Z",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-    },
-    dot: {
-      id: "N",
-      letter: "N",
-      shape: "circle",
-      dash: {
-        id: "K",
-        letter: "K",
-        shape: "rect",
-        dash: {
-          id: "Y",
-          letter: "Y",
-          shape: "rect",
-          dash: null,
-          dot: null,
-        },
-        dot: {
-          id: "C",
-          letter: "C",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-      dot: {
-        id: "D",
-        letter: "D",
-        shape: "circle",
-        dash: {
-          id: "X",
-          letter: "X",
-          shape: "rect",
-          dash: null,
-          dot: null,
-        },
-        dot: {
-          id: "B",
-          letter: "B",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-    },
-  },
-  dot: {
-    id: "E",
-    letter: "E",
-    shape: "circle",
-    dash: {
-      id: "A",
-      letter: "A",
-      shape: "rect",
-      dash: {
-        id: "W",
-        letter: "W",
-        shape: "rect",
-        dash: {
-          id: "J",
-          letter: "J",
-          shape: "rect",
-          dash: null,
-          dot: null,
-        },
-        dot: {
-          id: "P",
-          letter: "P",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-      dot: {
-        id: "R",
-        letter: "R",
-        shape: "circle",
-        dash: null,
-        dot: {
-          id: "L",
-          letter: "L",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-    },
-    dot: {
-      id: "I",
-      letter: "I",
-      shape: "circle",
-      dash: {
-        id: "U",
-        letter: "U",
-        shape: "rect",
-        dash: null,
-        dot: {
-          id: "F",
-          letter: "F",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-      dot: {
-        id: "S",
-        letter: "S",
-        shape: "circle",
-        dash: {
-          id: "V",
-          letter: "V",
-          shape: "rect",
-          dash: null,
-          dot: null,
-        },
-        dot: {
-          id: "H",
-          letter: "H",
-          shape: "circle",
-          dash: null,
-          dot: null,
-        },
-      },
-    },
-  },
+/** Committed token → Morse code (`.` dit, `-` dah). Prosigns commit as `<XX>`. */
+export const MORSE_CODES = {
+  A: ".-",
+  B: "-...",
+  C: "-.-.",
+  D: "-..",
+  E: ".",
+  F: "..-.",
+  G: "--.",
+  H: "....",
+  I: "..",
+  J: ".---",
+  K: "-.-",
+  L: ".-..",
+  M: "--",
+  N: "-.",
+  O: "---",
+  P: ".--.",
+  Q: "--.-",
+  R: ".-.",
+  S: "...",
+  T: "-",
+  U: "..-",
+  V: "...-",
+  W: ".--",
+  X: "-..-",
+  Y: "-.--",
+  Z: "--..",
+  0: "-----",
+  1: ".----",
+  2: "..---",
+  3: "...--",
+  4: "....-",
+  5: ".....",
+  6: "-....",
+  7: "--...",
+  8: "---..",
+  9: "----.",
+  "<AR>": ".-.-.",
+  "<BT>": "-...-",
+  "<KN>": "-.--.",
+  "<SK>": "...-.-",
 };
 
+function makeNode(code, letter) {
+  const last = code[code.length - 1];
+  const kind = last === "-" ? BRANCH_DASH : BRANCH_DOT;
+  return {
+    id: letter ? letter.replace(/[<>]/g, "") : `stub${code}`,
+    letter,
+    label: letter ? letter.replace(/[<>]/g, "") : null,
+    code,
+    kind,
+    shape: letter ? (kind === BRANCH_DASH ? "rect" : "circle") : "stub",
+    dash: null,
+    dot: null,
+  };
+}
+
+function buildTree() {
+  /** @type {MorseNode} */
+  const root = {
+    id: "root",
+    letter: null,
+    label: null,
+    code: "",
+    kind: null,
+    shape: "root",
+    dash: null,
+    dot: null,
+  };
+  for (const [letter, code] of Object.entries(MORSE_CODES)) {
+    let node = root;
+    for (let i = 0; i < code.length; i++) {
+      const branch = code[i] === "-" ? BRANCH_DASH : BRANCH_DOT;
+      const prefix = code.slice(0, i + 1);
+      if (!node[branch]) node[branch] = makeNode(prefix, null);
+      node = node[branch];
+    }
+    node.letter = letter;
+    node.label = letter.replace(/[<>]/g, "");
+    node.id = node.label;
+    node.shape = node.kind === BRANCH_DASH ? "rect" : "circle";
+  }
+  return root;
+}
+
+/** @type {MorseNode} */
+export const MORSE_ROOT = buildTree();
+
 /**
- * Flat list of every letter node for layout / LED lookup.
+ * Flat list of every non-root node for layout / LED lookup.
  * @returns {MorseNode[]}
  */
 export function flattenTree(node = MORSE_ROOT, out = []) {
-  if (node.letter) out.push(node);
+  if (node !== MORSE_ROOT) out.push(node);
   if (node.dash) flattenTree(node.dash, out);
   if (node.dot) flattenTree(node.dot, out);
   return out;
@@ -212,22 +141,40 @@ export function step(node, branch) {
  */
 export function pathIdsTo(target) {
   const path = [];
-  function walk(node) {
-    if (!node) return false;
-    if (node === target || node.id === target.id) {
-      path.push(node.id);
-      return true;
-    }
-    if (walk(node.dash)) {
-      path.unshift(node.id);
-      return true;
-    }
-    if (walk(node.dot)) {
-      path.unshift(node.id);
-      return true;
-    }
-    return false;
+  let node = MORSE_ROOT;
+  for (const ch of target.code) {
+    node = ch === "-" ? node.dash : node.dot;
+    if (!node) break;
+    path.push(node.id);
   }
-  walk(MORSE_ROOT);
-  return path.filter((id) => id !== "root");
+  return path;
+}
+
+/**
+ * Node for a committed token (e.g. `"A"`, `"7"`, `"<AR>"`).
+ * @param {string} token
+ * @returns {MorseNode | null}
+ */
+export function nodeForToken(token) {
+  const code = MORSE_CODES[token];
+  if (!code) return null;
+  let node = MORSE_ROOT;
+  for (const ch of code) {
+    node = ch === "-" ? node.dash : node.dot;
+    if (!node) return null;
+  }
+  return node;
+}
+
+/**
+ * Human-readable dit/dah pattern, e.g. `"· − · −"`.
+ * @param {string} token
+ */
+export function patternFor(token) {
+  const code = MORSE_CODES[token];
+  if (!code) return "";
+  return code
+    .split("")
+    .map((c) => (c === "-" ? "−" : "·"))
+    .join(" ");
 }

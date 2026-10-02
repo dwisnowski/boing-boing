@@ -97,6 +97,26 @@ export function createMorseAudio() {
     }
   }
 
+  /** Short one-shot tone, independent of the keyed CW tone. */
+  function beep(freqHz = 220, ms = 140) {
+    if (muted) return;
+    const audio = ensureContext();
+    if (!audio) return;
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = "square";
+    o.frequency.value = freqHz;
+    g.gain.value = 0.0001;
+    o.connect(g);
+    g.connect(audio.destination);
+    const now = audio.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+    g.gain.setValueAtTime(0.08, now + ms / 1000 - 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + ms / 1000);
+    o.start(now);
+    o.stop(now + ms / 1000 + 0.02);
+  }
+
   function isMuted() {
     return muted;
   }
@@ -116,6 +136,7 @@ export function createMorseAudio() {
   return {
     startTone,
     stopTone,
+    beep,
     setMuted,
     isMuted,
     isSounding,

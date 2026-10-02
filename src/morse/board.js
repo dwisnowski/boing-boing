@@ -13,79 +13,116 @@ const GOLD_DIM = "rgba(214, 199, 161, 0.85)";
 const GOLD_LIT = "#ffd45a";
 const GOLD_CORE = "#ffe9a0";
 const INK = "#050505";
-const LOGICAL_W = 360;
-const LOGICAL_H = 500;
+const LOGICAL_W = 440;
+const LOGICAL_H = 560;
 const SEGMENT_MS = 260;
 
 /**
  * Node positions in logical canvas space.
- * Matches the physical Trainer Card Pro dichotomous key.
+ * Letters follow the physical Trainer Card Pro dichotomous key; digits,
+ * prosigns and unlabeled stub pads hang off the same rails.
  */
 const LAYOUT = {
-  root: { x: 180, y: 72 },
-  // Dash rail (left): O — M — T
-  O: { x: 48, y: 128 },
-  M: { x: 95, y: 128 },
-  T: { x: 142, y: 128 },
-  // Dit rail (right): E — I — S — H
-  E: { x: 228, y: 128 },
-  I: { x: 270, y: 128 },
-  S: { x: 308, y: 128 },
-  H: { x: 340, y: 128 },
+  root: { x: 220, y: 72 },
+  // Dash rail (left): ---- — O — M — T
+  "stub----": { x: 36, y: 130 },
+  O: { x: 80, y: 130 },
+  M: { x: 128, y: 130 },
+  T: { x: 176, y: 130 },
+  0: { x: 36, y: 94 },
+  9: { x: 36, y: 172 },
+  "stub---.": { x: 80, y: 172 },
+  8: { x: 80, y: 210 },
   // Under M
-  Q: { x: 48, y: 168 },
-  G: { x: 95, y: 168 },
-  Z: { x: 95, y: 200 },
+  G: { x: 128, y: 172 },
+  Q: { x: 116, y: 212 },
+  Z: { x: 148, y: 212 },
+  7: { x: 148, y: 250 },
+  // Center-left spine under T
+  N: { x: 176, y: 290 },
+  K: { x: 128, y: 290 },
+  Y: { x: 80, y: 290 },
+  KN: { x: 80, y: 330 },
+  C: { x: 128, y: 330 },
+  D: { x: 176, y: 370 },
+  X: { x: 128, y: 370 },
+  B: { x: 176, y: 420 },
+  BT: { x: 128, y: 420 },
+  6: { x: 176, y: 470 },
+  // Dit rail (right): E — I — S — H
+  E: { x: 264, y: 130 },
+  I: { x: 304, y: 130 },
+  S: { x: 344, y: 130 },
+  H: { x: 384, y: 130 },
+  5: { x: 384, y: 94 },
+  4: { x: 384, y: 172 },
   // Under I / S
-  U: { x: 270, y: 168 },
-  V: { x: 308, y: 168 },
-  F: { x: 270, y: 200 },
-  // Center spine under T
-  N: { x: 142, y: 255 },
-  D: { x: 142, y: 330 },
-  B: { x: 142, y: 380 },
-  // Left of N / D
-  Y: { x: 48, y: 255 },
-  K: { x: 95, y: 255 },
-  C: { x: 95, y: 280 },
-  X: { x: 95, y: 330 },
-  // Right spine under E
-  A: { x: 228, y: 255 },
-  R: { x: 278, y: 255 },
-  L: { x: 322, y: 255 },
-  W: { x: 228, y: 330 },
-  P: { x: 286, y: 330 },
-  J: { x: 228, y: 380 },
+  U: { x: 304, y: 172 },
+  F: { x: 304, y: 212 },
+  "stub..--": { x: 284, y: 212 },
+  2: { x: 284, y: 250 },
+  V: { x: 344, y: 172 },
+  3: { x: 344, y: 212 },
+  "stub...-.": { x: 400, y: 212 },
+  SK: { x: 400, y: 250 },
+  // Center-right spine under E
+  A: { x: 264, y: 300 },
+  R: { x: 312, y: 300 },
+  L: { x: 360, y: 300 },
+  "stub.-.-": { x: 312, y: 340 },
+  AR: { x: 352, y: 340 },
+  W: { x: 264, y: 380 },
+  P: { x: 312, y: 380 },
+  J: { x: 264, y: 430 },
+  1: { x: 264, y: 470 },
 };
 
-/** Letter label offsets relative to node center. */
+const RIGHT = { dx: 14, dy: 0 };
+const LEFT = { dx: -14, dy: 0 };
+const ABOVE = { dx: 0, dy: -16 };
+
+/** Label offsets relative to node center. */
 const LABEL_OFFSET = {
-  O: { dx: 0, dy: -16 },
-  M: { dx: 0, dy: -16 },
-  T: { dx: 14, dy: -4 },
-  Q: { dx: 0, dy: -16 },
-  G: { dx: 14, dy: 4 },
-  Z: { dx: 14, dy: 4 },
-  Y: { dx: 0, dy: -16 },
-  K: { dx: 0, dy: -16 },
-  C: { dx: 14, dy: 4 },
-  X: { dx: 0, dy: -16 },
-  N: { dx: 14, dy: 4 },
-  D: { dx: 14, dy: 4 },
-  B: { dx: 14, dy: 4 },
-  E: { dx: 0, dy: -16 },
-  I: { dx: 0, dy: -16 },
-  S: { dx: 0, dy: -16 },
-  H: { dx: 0, dy: -16 },
-  U: { dx: 14, dy: -4 },
-  V: { dx: 14, dy: -4 },
-  F: { dx: 14, dy: 4 },
-  A: { dx: -14, dy: -4 },
-  R: { dx: 0, dy: -16 },
-  L: { dx: 0, dy: -16 },
-  W: { dx: -14, dy: -4 },
-  P: { dx: 0, dy: -16 },
-  J: { dx: -14, dy: -4 },
+  T: { dx: 14, dy: -6 },
+  M: ABOVE,
+  O: ABOVE,
+  0: RIGHT,
+  9: RIGHT,
+  8: LEFT,
+  G: RIGHT,
+  Q: LEFT,
+  Z: RIGHT,
+  7: RIGHT,
+  N: RIGHT,
+  K: ABOVE,
+  Y: ABOVE,
+  KN: RIGHT,
+  C: RIGHT,
+  D: RIGHT,
+  X: LEFT,
+  B: RIGHT,
+  BT: LEFT,
+  6: RIGHT,
+  E: { dx: -14, dy: -6 },
+  I: ABOVE,
+  S: ABOVE,
+  H: RIGHT,
+  5: RIGHT,
+  4: RIGHT,
+  U: LEFT,
+  F: RIGHT,
+  2: RIGHT,
+  V: RIGHT,
+  3: RIGHT,
+  SK: LEFT,
+  A: LEFT,
+  R: ABOVE,
+  L: ABOVE,
+  AR: RIGHT,
+  W: LEFT,
+  P: RIGHT,
+  J: LEFT,
+  1: LEFT,
 };
 
 function collectEdges(node = MORSE_ROOT, edges = []) {
@@ -187,10 +224,13 @@ export function createBoard(mount) {
     fromCount: 0,
     startedAt: 0,
   };
+  /** @type {string[]} */
+  let hintPath = [];
+  let heightRatio = 0.56;
 
   function resize() {
     const parentW = mount.clientWidth || LOGICAL_W;
-    const maxH = Math.min(window.innerHeight * 0.56, 560);
+    const maxH = Math.min(window.innerHeight * heightRatio, 600);
     const scale = Math.min(parentW / LOGICAL_W, maxH / LOGICAL_H);
     cssW = Math.floor(LOGICAL_W * scale);
     cssH = Math.floor(LOGICAL_H * scale);
@@ -388,7 +428,7 @@ export function createBoard(mount) {
     ctx.stroke();
 
     // Mount hole
-    const hole = toScreen(328, 36);
+    const hole = toScreen(404, 36);
     ctx.beginPath();
     ctx.arc(hole.x, hole.y, 9 * s, 0, Math.PI * 2);
     ctx.fillStyle = "#0a0a0a";
@@ -402,12 +442,12 @@ export function createBoard(mount) {
     ctx.font = `700 ${Math.round(15 * s)}px "IBM Plex Sans", sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    const morsePos = toScreen(42, 40);
-    const codePos = toScreen(248, 40);
+    const morsePos = toScreen(62, 40);
+    const codePos = toScreen(288, 40);
     ctx.fillText("MORSE", morsePos.x, morsePos.y);
     ctx.fillText("CODE", codePos.x, codePos.y);
 
-    const ant = toScreen(180, 40);
+    const ant = toScreen(220, 40);
     drawAntenna(ctx, ant.x, ant.y, 22 * s);
 
     // Stem antenna → root
@@ -444,6 +484,32 @@ export function createBoard(mount) {
       });
     }
 
+    // Ghost hint trace for the next expected character
+    if (hintPath.length) {
+      let prev = "root";
+      for (const id of hintPath) {
+        const a = LAYOUT[prev];
+        const b = LAYOUT[id];
+        prev = id;
+        if (!a || !b) continue;
+        const pts = elbowPath(a, b).map((p) => toScreen(p.x, p.y));
+        strokePolyline(ctx, pts, {
+          color: "rgba(140, 220, 255, 0.75)",
+          width: Math.max(1.4, 2 * s),
+          dashOffset: 0.0001,
+        });
+      }
+      const last = LAYOUT[hintPath[hintPath.length - 1]];
+      if (last) {
+        const p = toScreen(last.x, last.y);
+        ctx.strokeStyle = "rgba(140, 220, 255, 0.85)";
+        ctx.lineWidth = Math.max(1.2, 1.5 * s);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10 * s, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
     // Nodes + LEDs + labels
     // Dah (rect) → red LED; Dit (circle) → green LED
     ctx.font = `700 ${Math.round(11 * s)}px "IBM Plex Sans", sans-serif`;
@@ -462,7 +528,8 @@ export function createBoard(mount) {
       if (!pos) continue;
       const p = toScreen(pos.x, pos.y);
       const on = litReady.has(node.id);
-      const isDah = node.shape === "rect";
+      const isDah = node.kind === "dash";
+      const isStub = node.shape === "stub";
       const kind = isDah ? "red" : "green";
       const isCurrent = node.id === current && on;
 
@@ -472,7 +539,7 @@ export function createBoard(mount) {
           p.x,
           p.y,
           kind,
-          (isCurrent ? 16 : 13) * s * (0.92 + pulse * 0.08),
+          (isCurrent ? 16 : isStub ? 9 : 13) * s * (0.92 + pulse * 0.08),
           pulse
         );
       }
@@ -485,6 +552,18 @@ export function createBoard(mount) {
       } else {
         ctx.strokeStyle = on ? "#78ffaa" : "#3dcc6e";
         ctx.fillStyle = on ? "#0c4824" : "#1a5a32";
+      }
+
+      if (isStub) {
+        ctx.beginPath();
+        if (isDah) {
+          drawRoundedRect(ctx, p.x - 4.5 * s, p.y - 3 * s, 9 * s, 6 * s, 1.5 * s);
+        } else {
+          ctx.arc(p.x, p.y, 3.4 * s, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+        continue;
       }
 
       if (node.shape === "rect") {
@@ -520,10 +599,15 @@ export function createBoard(mount) {
         ctx.fill();
       }
 
-      const off = LABEL_OFFSET[node.id] || { dx: 12, dy: 0 };
+      const off = LABEL_OFFSET[node.id] || RIGHT;
+      const label = node.id === "0" ? "Ø" : node.label || "";
+      ctx.font =
+        label.length > 1
+          ? `700 ${Math.round(8.5 * s)}px "IBM Plex Sans", sans-serif`
+          : `700 ${Math.round(11 * s)}px "IBM Plex Sans", sans-serif`;
       ctx.fillStyle = on ? "#fff4c2" : GOLD;
       ctx.textAlign = off.dx < 0 ? "end" : off.dx === 0 ? "center" : "start";
-      ctx.fillText(node.letter, p.x + off.dx * s, p.y + off.dy * s);
+      ctx.fillText(label, p.x + off.dx * s, p.y + off.dy * s);
     }
 
     // Animated gold traces drawn ON TOP so they read clearly as gold (not green-tinted by LED glow)
@@ -591,7 +675,7 @@ export function createBoard(mount) {
       );
     }
 
-    const sp = toScreen(180, 455);
+    const sp = toScreen(220, 515);
     drawSpeaker(ctx, sp.x, sp.y, 28 * s);
 
     if (errorFlash > 0) errorFlash -= 1;
@@ -658,6 +742,18 @@ export function createBoard(mount) {
     ensureAnim();
   }
 
+  /** @param {string[]} pathIds */
+  function setHint(pathIds) {
+    hintPath = pathIds ? pathIds.slice() : [];
+    paint();
+  }
+
+  /** Fraction of the viewport height the card may occupy. */
+  function setHeightRatio(ratio) {
+    heightRatio = ratio;
+    resize();
+  }
+
   const ro = new ResizeObserver(() => resize());
   ro.observe(mount);
   window.addEventListener("resize", resize);
@@ -668,6 +764,8 @@ export function createBoard(mount) {
     setPath,
     clearPath,
     flashError,
+    setHint,
+    setHeightRatio,
     resize,
     destroy() {
       ro.disconnect();

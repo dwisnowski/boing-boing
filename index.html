@@ -113,8 +113,32 @@
       <div class="morse-page">
         <header class="morse-page-header">
           <a class="brand-link" href="#/" aria-label="Back to home">← Home</a>
+          <div class="morse-mode-toggle" role="group" aria-label="Trainer mode">
+            <button type="button" class="morse-mode-btn" data-mode="free" aria-pressed="true">Free key</button>
+            <button type="button" class="morse-mode-btn" data-mode="practice" aria-pressed="false">Practice</button>
+          </div>
           <h1 class="morse-page-title">Morse Trainer</h1>
         </header>
+
+        <section id="morse-practice" class="morse-practice" aria-label="Send practice" hidden>
+          <div class="mp-config"></div>
+          <p class="mp-live" aria-live="polite"></p>
+          <div class="mp-test">
+            <p class="mp-gloss"></p>
+            <div class="mp-words" aria-live="polite"></div>
+            <p class="mp-next" hidden></p>
+            <p class="mp-upnext"></p>
+          </div>
+          <div class="mp-results" hidden>
+            <div class="mp-stats"></div>
+            <canvas class="mp-chart" aria-label="Words per minute over time with error markers"></canvas>
+            <div class="mp-misses"></div>
+          </div>
+          <div class="mp-actions">
+            <button type="button" class="btn ghost mp-restart">Restart</button>
+            <span class="mp-restart-hint"><kbd>Tab</kbd> / <kbd>Enter</kbd> restart</span>
+          </div>
+        </section>
 
         <div class="morse-readout">
           <p class="morse-label">Decoded</p>
@@ -144,6 +168,6 @@
       </div>
     </div>
 
-    <script type="module" src="./src/main.js?v=route1"></script>
+    <script type="module" src="./src/main.js?v=practice1"></script>
   </body>
 </html>

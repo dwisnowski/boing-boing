@@ -34,7 +34,7 @@ Land **feet-down** on the slope to bounce and build speed. Holding stabilizes yo
 
 - **Tournament** — climb a ladder of mountain stages; progress is saved locally
 - **Quick Race** — one random mountain
-- **Morse Trainer** — interactive dichotomous Morse chart (Trainer Card Pro style): hold **Space** or **Key** for dits/dahs, watch the LED path light up, hear CW beeps, mute for silent practice, and use Record / Play to audit timing
+- **Morse Trainer** — interactive dichotomous Morse chart (Trainer Card Pro style): hold **Space** or **Key** for dits/dahs, watch the LED path light up, hear CW beeps, mute for silent practice, use Record / Play to audit timing, and switch to **Practice** for Monkeytype-style CW shorthand drills
 - **Upgrades** — spend microchips on Stamina, Spin, Jump Springs, and Explosion
 
 ## Morse Trainer controls
@@ -49,7 +49,24 @@ Land **feet-down** on the slope to bounce and build speed. Holding stabilizes yo
 | Clear message & buffer | **Clear** |
 | Back to menu | **Esc** or **Back** |
 
-Short presses are dits (right / circle branch); longer presses are dahs (left / rectangle branch). Pause to commit a letter into the decoded message.
+Short presses are dits (right / circle branch); longer presses are dahs (left / rectangle branch). Pause to commit a letter into the decoded message. The card covers A–Z, digits 0–9 (zero is drawn slashed, `Ø`), and the prosigns **AR**, **BT**, **KN**, **SK**; small unlabeled pads are intermediate codes on the way to a digit or prosign.
+
+## Morse Practice mode
+
+Switch the toggle under the title from **Free key** to **Practice** for Monkeytype-style send drills built from common CW shorthand: abbreviations (CQ, DE, TNX, FB…), Q-codes (QTH, QRZ, QSL…), numbers and reports (73, 599, 5NN…), and full QSO lines. Each phrase shows its meaning above the target text.
+
+- Key the phrase with the same inputs as Free key. Decoded characters turn **white** when correct and **red** when wrong (with the keyed character shown underneath when **typo** is on). Extra characters show as faded red; characters skipped by an early word gap are underlined.
+- A word advances automatically once it is keyed correctly; otherwise the word gap (pause) moves on.
+- Prosigns are keyed as one character with no letter gap and shown with an overline.
+
+| Setting | Options |
+| --- | --- |
+| Test mode | **phrases** (5 / 10 / 25) or **time** (30s / 60s / 120s) |
+| Category | All, Abbrev, Q-codes, Numbers, QSO, **Missed** (words you previously got wrong) |
+| Stop on error | **off**, **letter** (wrong characters are rejected), **word** (a wrong word is cleared at the word gap to re-key) |
+| Feedback | **typo** indicator, error **sound**, **hint** (next character's pattern plus a ghost path on the card) |
+
+The timer starts on the first key press. Results show WPM (correct characters ÷ 5 per minute), accuracy, raw WPM, character breakdown, time, your personal best for that mode, a WPM-over-time chart with red ✕ marks at error seconds, and the characters you missed with their patterns. Press **Tab** / **Enter** or **Restart** for a new run. Settings, personal bests and missed words are saved in `localStorage`.
 
 ## Project layout
 
@@ -69,11 +86,13 @@ src/
   assets/
     morse-card-reference.jpg   # tight crop reference for canvas card
   morse/
-    tree.js     # dichotomous Morse alphabet tree
-    audio.js    # Web Audio CW tone
+    tree.js     # dichotomous Morse tree (letters, digits, prosigns)
+    audio.js    # Web Audio CW tone + error beep
     decoder.js  # dit/dah + letter/word gap timing
-    board.js    # canvas vector PCB card + LED glow
-    trainer.js  # keying, decode, record/playback
+    board.js    # canvas vector PCB card + LED glow + hint path
+    trainer.js  # keying, decode, record/playback, practice hooks
+    drills.js   # CW shorthand / QSO phrase bank
+    practice.js # Monkeytype-style send practice + results
 .github/workflows/deploy.yml
 ```
 

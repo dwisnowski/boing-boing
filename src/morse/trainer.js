@@ -25,6 +25,9 @@ import {
  *   recordBtn: HTMLElement,
  *   playBtn: HTMLElement,
  *   clearBtn: HTMLElement,
+ *   onKeyDown?: () => void,
+ *   onCommit?: (token: string) => boolean,
+ *   onWordGap?: () => void,
  * }} els
  */
 export function createTrainer(els) {
@@ -36,6 +39,8 @@ export function createTrainer(els) {
   let path = [];
   let message = "";
   let active = false;
+  /** @type {"free" | "practice"} */
+  let mode = "free";
   let recording = false;
   let playing = false;
   let elementBusy = false;
@@ -61,6 +66,7 @@ export function createTrainer(els) {
         renderMessage();
       }
       setStatus("Word gap");
+      els.onWordGap?.();
     },
   });
 
@@ -77,7 +83,7 @@ export function createTrainer(els) {
     current = next;
     path = pathIdsTo(next);
     board.setPath(path, next.id);
-    setStatus(next.letter ? `${next.letter} · ${pathSymbol()}` : pathSymbol());
+    setStatus(next.label ? `${next.label} · ${pathSymbol()}` : pathSymbol());
     return true;
   }
 
@@ -98,9 +104,15 @@ export function createTrainer(els) {
 
   function commitLetter() {
     if (current !== MORSE_ROOT && current.letter) {
-      message += current.letter;
-      renderMessage();
-      setStatus(`Decoded ${current.letter}`);
+      const accepted = els.onCommit ? els.onCommit(current.letter) !== false : true;
+      if (accepted) {
+        message += current.letter;
+        renderMessage();
+        setStatus(`Decoded ${current.label}`);
+      } else {
+        board.flashError();
+        setStatus(`${current.label} rejected — key the expected character`);
+      }
     } else if (current !== MORSE_ROOT) {
       setStatus("No letter at this node");
     }
@@ -229,6 +241,7 @@ export function createTrainer(els) {
     audio.ensureContext();
     audio.startTone();
     decoder.keyDown();
+    els.onKeyDown?.();
     if (recording) {
       recordBuffer.push({
         t: performance.now() - recordStartedAt,
@@ -269,6 +282,7 @@ export function createTrainer(els) {
       audio.ensureContext();
       decoder.clearTimers();
       audio.startTone();
+      els.onKeyDown?.();
       const beepStarted = performance.now();
       if (recording) {
         recordBuffer.push({
@@ -385,10 +399,10 @@ export function createTrainer(els) {
     } else if (e.key === "m" || e.key === "M") {
       e.preventDefault();
       toggleMute();
-    } else if (e.key === "r" || e.key === "R") {
+    } else if (mode === "free" && (e.key === "r" || e.key === "R")) {
       e.preventDefault();
       if (!playing) setRecording(!recording);
-    } else if (e.key === "p" || e.key === "P") {
+    } else if (mode === "free" && (e.key === "p" || e.key === "P")) {
       e.preventDefault();
       playRecording();
     }
@@ -438,6 +452,23 @@ export function createTrainer(els) {
     board.resize?.();
   }
 
+  /** @param {"free" | "practice"} next */
+  function setMode(next) {
+    if (next === mode) return;
+    mode = next;
+    stopPlayback();
+    if (recording) setRecording(false);
+    decoder.reset();
+    current = MORSE_ROOT;
+    path = [];
+    message = "";
+    board.clearPath();
+    board.setHint([]);
+    board.setHeightRatio(mode === "practice" ? 0.44 : 0.56);
+    renderMessage();
+    setStatus(mode === "practice" ? "Key the highlighted phrase" : "Hold Key or tap Dit / Dah");
+  }
+
   renderMessage();
 
   return {
@@ -446,5 +477,9 @@ export function createTrainer(els) {
     destroy,
     clearAll,
     resize,
+    setMode,
+    setHint: (pathIds) => board.setHint(pathIds),
+    flashError: () => board.flashError(),
+    errorBeep: () => audio.beep(220, 140),
   };
 }

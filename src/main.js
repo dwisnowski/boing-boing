@@ -6,6 +6,7 @@ import {
   UPGRADE_DEFS,
   upgradeCost,
 } from "./upgrades.js";
+import { createPractice } from "./morse/practice.js";
 import { createTrainer } from "./morse/trainer.js";
 import { createRouter } from "./router.js";
 
@@ -45,6 +46,9 @@ let activeLevelIndex = 0;
 let lastResult = null;
 /** @type {ReturnType<typeof createTrainer> | null} */
 let morseTrainer = null;
+/** @type {ReturnType<typeof createPractice> | null} */
+let morsePractice = null;
+const MORSE_MODE_KEY = "morse.mode";
 let gameWired = false;
 
 const router = createRouter({
@@ -62,6 +66,7 @@ function showPage(name) {
 
   if (name !== "morse" && morseTrainer) {
     morseTrainer.deactivate();
+    morsePractice?.deactivate();
   }
   if (name !== "game" && race) {
     race.stop();
@@ -236,13 +241,54 @@ function openMorse() {
       recordBtn: document.getElementById("btn-morse-record"),
       playBtn: document.getElementById("btn-morse-play"),
       clearBtn: document.getElementById("btn-morse-clear"),
+      onKeyDown: () => morsePractice?.handleKeyDown(),
+      onCommit: (token) => morsePractice?.handleCommit(token) ?? true,
+      onWordGap: () => morsePractice?.handleWordGap(),
     });
+    const trainer = morseTrainer;
+    morsePractice = createPractice({
+      root: document.getElementById("morse-practice"),
+      setHint: (ids) => trainer.setHint(ids),
+      flashError: () => trainer.flashError(),
+      errorBeep: () => trainer.errorBeep(),
+    });
+    for (const btn of pageMorse.querySelectorAll(".morse-mode-btn")) {
+      btn.addEventListener("click", () => {
+        setMorseMode(btn.dataset.mode);
+        btn.blur();
+      });
+    }
+    window.addEventListener("resize", () => morsePractice?.resize());
   }
   morseTrainer.activate();
+  let savedMode = "free";
+  try {
+    savedMode = localStorage.getItem(MORSE_MODE_KEY) || "free";
+  } catch {
+    /* storage unavailable */
+  }
+  setMorseMode(savedMode === "practice" ? "practice" : "free");
   // Ensure canvas board sizes to the visible page
   requestAnimationFrame(() => {
     morseTrainer?.resize?.();
   });
+}
+
+/** @param {"free" | "practice"} next */
+function setMorseMode(next) {
+  if (!morseTrainer || !morsePractice) return;
+  pageMorse.classList.toggle("is-practice", next === "practice");
+  for (const btn of pageMorse.querySelectorAll(".morse-mode-btn")) {
+    btn.setAttribute("aria-pressed", btn.dataset.mode === next ? "true" : "false");
+  }
+  morseTrainer.setMode(next);
+  if (next === "practice") morsePractice.activate();
+  else morsePractice.deactivate();
+  try {
+    localStorage.setItem(MORSE_MODE_KEY, next);
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 function renderShop() {
