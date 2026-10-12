@@ -1,6 +1,6 @@
 # Boing Boing
 
-[![Play on GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?style=for-the-badge&logo=github)](https://dwisnowski.github.io/boing-boing/)
+[![Play on GitHub Pages](https://img.shields.io/badge/Play-GitHub%20Pages-2ea44f?style=for-the-badge&logo=github)](https://boing.wildideazone.com/)
 
 A physics downhill racer inspired by **Kamikaze Robots**. Launch a spring-footed robot down jagged mountains, stick flat landings for huge bounces, and limp across the finish — even as a tin head if you have to.
 
@@ -8,7 +8,7 @@ Hosted as a static site on GitHub Pages.
 
 ## Play
 
-- **Live (after Pages is enabled):** [dwisnowski.github.io/boing-boing](https://dwisnowski.github.io/boing-boing/)
+- **Live:** [boing.wildideazone.com](https://boing.wildideazone.com/)
 - **Local:** from the repo root run `python3 -m http.server 8080` and open `http://localhost:8080`
 
 ## Routes
@@ -142,3 +142,10 @@ src/
 1. Merge to `main`
 2. Repo **Settings → Pages → Source: GitHub Actions**
 3. The deploy workflow publishes the static site
+
+### Custom domain (`boing.wildideazone.com`)
+
+DNS lives on Cloudflare: `boing` is a CNAME to `dwisnowski.github.io`, **DNS only** (grey cloud) so
+GitHub can issue the HTTPS certificate. The workflow deploys via Actions, so the domain is set in
+**Settings → Pages → Custom domain** (a `CNAME` file in the repo is ignored), then enable
+**Enforce HTTPS** once the certificate is ready.
