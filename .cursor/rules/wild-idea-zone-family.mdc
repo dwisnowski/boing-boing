@@ -1,0 +1,42 @@
+---
+description: Every Wild Idea Zone project (a <name>.wildideazone.com subdomain site) links back to the main site at www.wildideazone.com and is listed there.
+alwaysApply: true
+---
+
+# Wild Idea Zone project family
+
+Each project is its own repo hosted at `<subdomain>.wildideazone.com`. The main site, www.wildideazone.com (repo `~/code/wild-idea-zone`), is the hub. Every project ties back into it, and the hub lists every project.
+
+## In the project (any stack)
+
+1. **Logo:** copy `~/code/wild-idea-zone/public/favicon.svg` into the project as `wild-idea-zone.svg` (e.g. `src/assets/` or `public/`). Use the local copy instead of hotlinking.
+2. **Favicon:** `<link rel="icon" href="…/wild-idea-zone.svg" type="image/svg+xml" />`, unless the project has its own icon.
+3. **Header logo link:** put the logo (24–32px) just left of the project title, linking to the hub:
+   ```html
+   <a class="wiz-home" href="https://www.wildideazone.com/" title="Wild Idea Zone: more projects">
+     <img src="./src/assets/wild-idea-zone.svg" alt="Wild Idea Zone" width="28" height="28" />
+   </a>
+   ```
+4. **Footer credit:** a small, muted line at the bottom of the main layout. `<slug>` is the project's slug on the hub:
+   ```html
+   <footer class="wiz-footer">
+     A <a href="https://www.wildideazone.com/">Wild Idea Zone</a> project ·
+     <a href="https://www.wildideazone.com/projects/<slug>">About this build</a> ·
+     <a href="https://www.wildideazone.com/projects">More projects</a>
+   </footer>
+   ```
+5. **Meta:** add `<meta property="og:site_name" content="Wild Idea Zone" />`.
+6. **README:** link the live subdomain and the hub page `https://www.wildideazone.com/projects/<slug>`.
+
+Style the links with the project's own accent color and fonts; only the logo is shared. Keep them out of the way of the app itself. Full-screen games and canvases must still fit the viewport.
+
+## On the hub (`~/code/wild-idea-zone`)
+
+- Add an entry to `src/data/projects.ts`: `slug`, `title`, `tagline`, `description`, `highlights`, `tags`, `status`, `subdomain`, `repoUrl`, `image`, and `featured` when it should appear on the home page.
+- Put the card image at `public/projects/<slug>/` as a 1024px-wide JPEG screenshot.
+- Run `npm run lint && npm run build`, then `npm run deploy`. There is no CI.
+
+## Hosting the subdomain
+
+- Cloudflare DNS (zone `wildideazone.com`): `CNAME <subdomain> → dwisnowski.github.io`, **DNS only** (grey cloud), for GitHub Pages.
+- GitHub Pages: set the source to GitHub Actions and the custom domain to `<subdomain>.wildideazone.com`, then turn on Enforce HTTPS once the certificate is approved.

@@ -68,7 +68,7 @@ body {
 
 .topbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.45rem;
@@ -78,9 +78,50 @@ body {
 
 .topbar-left {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.6rem;
   min-width: 0;
+}
+
+/* —— Wild Idea Zone links —— */
+.wiz-home {
+  display: flex;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  transition: transform 0.12s ease;
+}
+
+.wiz-home img {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.wiz-home:hover,
+.wiz-home:focus-visible {
+  transform: translateY(-1px) scale(1.06);
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.wiz-footer {
+  flex: 0 0 auto;
+  margin: 0.45rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--steel);
+  opacity: 0.8;
+}
+
+.wiz-footer a {
+  color: var(--mint);
+  text-decoration: none;
+}
+
+.wiz-footer a:hover,
+.wiz-footer a:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }
 
 .brand {

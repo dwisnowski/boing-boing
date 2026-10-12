@@ -4,7 +4,7 @@
 
 A physics downhill racer inspired by **Kamikaze Robots**. Launch a spring-footed robot down jagged mountains, stick flat landings for huge bounces, and limp across the finish — even as a tin head if you have to.
 
-Hosted as a static site on GitHub Pages.
+Hosted as a static site on GitHub Pages. Part of [Wild Idea Zone](https://www.wildideazone.com/): see the [project page](https://www.wildideazone.com/projects/boing-boing) and [more projects](https://www.wildideazone.com/projects).
 
 Looking for the Morse code trainer that used to live here? It moved to its own repo, [morse-code-trainer](https://github.com/dwisnowski/morse-code-trainer), live at [morse.wildideazone.com](https://morse.wildideazone.com/).
 
@@ -44,6 +44,8 @@ src/
   input.js      # hold-to-stabilize controls
   upgrades.js   # localStorage save + upgrade stats
   styles.css
+  assets/
+    wild-idea-zone.svg   # Wild Idea Zone logo (favicon + header link)
 .github/workflows/deploy.yml
 ```
 
